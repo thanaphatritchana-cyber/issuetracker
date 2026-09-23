@@ -25,22 +25,8 @@
   --shadow:0 18px 44px rgba(27,37,71,.20);
   --font:'Prompt',system-ui,-apple-system,'Segoe UI',Tahoma,sans-serif;
 }
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --bg:#0F172E; --surface:#16203F; --surface-2:#1D294B;
-    --border:#2A3760; --border-2:#3A4A7A;
-    --text:#DAE1F2; --heading:#EDF1FA; --muted:#9FADCE; --faint:#7785A8;
-    --side:#152449; --side-muted:#93A8DC; --side-hover:rgba(255,255,255,.1); --side-active:#3468EE; --side-line:rgba(255,255,255,.14);
-    --accent:#5B9BFF; --accent-ink:#0A1428; --accent-soft:#1B2E55; --accent-lite:#A9C6FA;
-    --bug:#EE6F66; --bug-bg:#3D1E22;
-    --issue:#DFA84B; --issue-bg:#3A2D14;
-    --cr:#34B3B3; --cr-bg:#0B3234;
-    --ok:#3FB489; --ok-bg:#10352A;
-    --neutral:#9FADCE; --neutral-bg:#22305A;
-    --scrim:rgba(5,10,24,.6);
-    --shadow:0 18px 44px rgba(0,0,0,.6);
-  }
-}
+/* ธีมสว่าง (น้ำเงิน-ขาว) เป็นค่าเริ่มต้นเสมอ ไม่ตามค่า dark mode ของเครื่อง
+   ใครอยากได้ธีมมืดกดปุ่มสลับที่แถบบน แล้วระบบจะจำไว้ให้ */
 :root[data-theme="dark"]{
   --bg:#0F172E; --surface:#16203F; --surface-2:#1D294B;
   --border:#2A3760; --border-2:#3A4A7A;
@@ -85,6 +71,8 @@ h1,h2,h3{color:var(--heading)}
 .avatar{width:38px;height:38px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-weight:500;flex:none}
 .menu-btn{display:none;border:1px solid var(--border-2);background:var(--surface);border-radius:8px;width:40px;height:40px;padding:0;cursor:pointer;flex:none;align-items:center;justify-content:center}
 .menu-btn svg{width:20px;height:20px}
+.icon-btn{border:1px solid var(--border-2);background:var(--surface);color:var(--text);border-radius:8px;width:38px;height:38px;padding:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none;line-height:1}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent)}
 .content{padding:28px;max-width:1560px}
 .scrim{display:none}
 
@@ -199,6 +187,9 @@ dialog::backdrop{background:rgba(31,35,72,.45)}
 
 /* ---------- auth screen ---------- */
 .auth-screen{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+/* จำเป็น: display:flex บรรทัดบนมี specificity เท่ากับ [hidden]{display:none}
+   ของเบราว์เซอร์ แต่มาทีหลังจึงชนะ ทำให้หน้า login โผล่ตลอดแม้ไม่ได้สั่งแสดง */
+.auth-screen[hidden]{display:none}
 .auth-card{width:min(400px,100%);background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px}
 .auth-logo{font-size:22px;font-weight:600;color:var(--accent);letter-spacing:-.01em;text-align:center;margin-bottom:4px}
 .auth-logo span{color:var(--heading)}
@@ -266,7 +257,7 @@ body.locked{overflow:hidden}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
     <div class="page-title" id="pageTitle">Issue Dashboard</div>
-    <div class="user"><span id="userName">ผู้ใช้งาน</span><div class="avatar" id="userAvatar">U</div></div>
+    <div class="user"><button type="button" class="icon-btn" id="themeBtn" aria-label="สลับธีมมืด">&#9790;</button><span id="userName">ผู้ใช้งาน</span><div class="avatar" id="userAvatar">U</div></div>
   </header>
   <section class="content" id="content"></section>
 </main>
@@ -913,10 +904,33 @@ function setSignedOut(){
   showAuth(true);
 }
 
+/* ============ theme ============ */
+const THEME_LS='issue-tracker-theme';
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  const b=$('#themeBtn');
+  if(b){
+    b.innerHTML=t==='dark'?'&#9728;':'&#9790;';
+    b.setAttribute('aria-label',t==='dark'?'สลับเป็นธีมสว่าง':'สลับเป็นธีมมืด');
+  }
+  mountCharts();   /* สีกราฟอ่านจาก CSS variable ตอน mount จึงต้องสร้างใหม่ */
+}
+function toggleTheme(){
+  const next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+  try{localStorage.setItem(THEME_LS,next)}catch(e){}
+  applyTheme(next);
+}
+$('#themeBtn').onclick=toggleTheme;
+(function(){
+  let saved='light';
+  try{saved=localStorage.getItem(THEME_LS)==='dark'?'dark':'light'}catch(e){}
+  applyTheme(saved);
+})();
+
 /* ============ boot ============ */
 loadLocal();render();
 document.addEventListener('DOMContentLoaded',mountCharts);
-try{matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>mountCharts())}catch(e){}
+
 
 /* เปิดผ่าน GitHub Pages / เซิร์ฟเวอร์ทั่วไป: ใช้ Supabase เมื่อกรอก config ไว้
    ต้อง login ก่อนเสมอ เพราะหน้าเว็บเปิดสาธารณะและ anon key อยู่ในโค้ด */
