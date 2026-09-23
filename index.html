@@ -191,8 +191,10 @@ dialog::backdrop{background:rgba(31,35,72,.45)}
 
 /* ---------- gantt ---------- */
 .gantt{overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.gantt{--gname:230px}
 .g-inner{min-width:760px}
-.g-row{display:grid;grid-template-columns:230px minmax(0,1fr);align-items:stretch;border-top:1px solid var(--border)}
+.g-body{position:relative;padding-bottom:22px}
+.g-row{display:grid;grid-template-columns:var(--gname) minmax(0,1fr);align-items:stretch;border-top:1px solid var(--border)}
 .g-row:first-child{border-top:0}
 .g-row.click{cursor:pointer}
 .g-row.click:hover{background:var(--surface-2)}
@@ -218,9 +220,8 @@ dialog::backdrop{background:rgba(31,35,72,.45)}
 .g-ms{position:absolute;top:0;height:100%;display:flex;align-items:center;transform:translateX(-50%);z-index:2}
 .g-ms i{width:14px;height:14px;background:var(--issue);transform:rotate(45deg);display:block;box-shadow:0 0 0 2px var(--surface)}
 .g-ms.done i{background:var(--ok)}
-.g-today{position:absolute;top:0;bottom:0;width:2px;background:var(--bug);z-index:3;pointer-events:none}
-.g-today::after{content:"วันนี้";position:absolute;top:2px;left:4px;font-size:10px;color:var(--bug);white-space:nowrap}
-.g-head .g-today::after{top:2px}
+.g-today{position:absolute;top:0;bottom:22px;width:2px;background:var(--bug);z-index:3;pointer-events:none}
+.g-today b{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:500;color:var(--bug);white-space:nowrap;background:var(--surface);padding:0 5px}
 .plan-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px}
 .plan-sum div{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
 .plan-sum span{font-size:12px;color:var(--muted);display:block}
@@ -721,10 +722,13 @@ function monthCells(r){
 }
 const pctAt=(r,d)=>daysBetween(r.min,d)/r.days*100;
 const gridHTML=cells=>`<div class="g-grid">${cells.map(c=>`<i style="width:${c.pct}%"></i>`).join('')}</div>`;
-function todayHTML(r){
+/* เส้นวันนี้เส้นเดียวพาดทุกแถว วางบน .g-body ไม่ใช่ในแต่ละแถว
+   ตำแหน่งอ้าง --gname เพื่อข้ามคอลัมน์ชื่องานให้ตรงกับพื้นที่เวลาเสมอ */
+function todayLine(r){
   const t=todayD();
   if(t<r.min||t>r.max)return '';
-  return `<div class="g-today" style="left:${pctAt(r,t)}%"></div>`;
+  const frac=(daysBetween(r.min,t)/r.days).toFixed(5);
+  return `<div class="g-today" style="left:calc(var(--gname) + (100% - var(--gname)) * ${frac})"><b>วันนี้</b></div>`;
 }
 /* คืบหน้ารวม ถ่วงน้ำหนักด้วยจำนวนวันของแต่ละงาน ไม่นับ milestone ที่ไม่กินเวลา */
 function overallProgress(items){
@@ -754,7 +758,7 @@ function barHTML(r,t){
       <div class="g-fill" style="width:${pg}%"></div></div>
     <div class="g-lab" style="left:${left+w}%">${pg}%</div>`;
 }
-const monthHead=(label,cells,r)=>`<div class="g-row g-head"><div class="g-name">${esc(label)}</div><div class="g-track" style="height:auto"><div class="g-months">${cells.map(c=>`<span style="width:${c.pct}%">${esc(c.label)}</span>`).join('')}</div>${todayHTML(r)}</div></div>`;
+const monthHead=(label,cells,r)=>`<div class="g-row g-head"><div class="g-name">${esc(label)}</div><div class="g-track" style="height:auto"><div class="g-months">${cells.map(c=>`<span style="width:${c.pct}%">${esc(c.label)}</span>`).join('')}</div></div></div>`;
 const ganttLegend=extra=>`<div class="g-legend"><span><i style="background:var(--accent)"></i>ตามแผน</span><span><i style="background:var(--bug)"></i>ล่าช้า</span><span><i style="background:var(--ok)"></i>เสร็จแล้ว</span>${extra||''}</div>`;
 
 function vPlan(){
@@ -782,17 +786,17 @@ function vPlan(){
       <div><span>ความคืบหน้าเฉลี่ย</span><b>${Math.round(rows.reduce((s,x)=>s+x.prog,0)/rows.length)}%</b></div>
       <div><span>โครงการที่มีงานล่าช้า</span><b class="${lateN?'warn':''}">${lateN}</b></div>
     </div>`;
-    h+=`<div class="card" style="padding:0;overflow:hidden"><div class="gantt"><div class="g-inner">`+monthHead('Project',cells,r);
+    h+=`<div class="card" style="padding:0;overflow:hidden"><div class="gantt"><div class="g-inner">`+monthHead('Project',cells,r)+`<div class="g-body">`+todayLine(r);
     for(const x of rows){
       const left=pctAt(r,x.start),w=(daysBetween(x.start,x.end)+1)/r.days*100;
       const cls=anyLate(x.ts)?'late':(x.prog>=100?'done':'');
       h+=`<div class="g-row click" onclick="UI.planProj='${x.p.id}';render()">
         <div class="g-name"><b>${esc(x.p.name)}</b><span>${esc(x.p.code||'—')} · ${x.ts.length} งาน</span></div>
-        <div class="g-track">${gridHTML(cells)}${todayHTML(r)}
+        <div class="g-track">${gridHTML(cells)}
           <div class="g-bar ${cls}" style="left:${left}%;width:${w}%" title="${esc(x.p.name)} · ${x.prog}%"><div class="g-fill" style="width:${x.prog}%"></div></div>
           <div class="g-lab" style="left:${left+w}%">${x.prog}%</div></div></div>`;
     }
-    return h+`</div></div></div>`+ganttLegend('<span>คลิกแถวเพื่อดูแผนรายโครงการ</span>');
+    return h+`</div></div></div></div>`+ganttLegend('<span>คลิกแถวเพื่อดูแผนรายโครงการ</span>');
   }
 
   /* รายโครงการ */
@@ -820,13 +824,13 @@ function vPlan(){
     <div><span>หมุดถัดไป</span><b style="font-size:14px">${nextMs?esc(nextMs.name)+'<br><span style="font-size:12px;font-weight:400;color:var(--muted)">'+fmtD(nextMs.start)+'</span>':'—'}</b></div>
   </div>`;
 
-  h+=`<div class="card" style="padding:0;overflow:hidden"><div class="gantt"><div class="g-inner">`+monthHead('งาน',cells,r);
+  h+=`<div class="card" style="padding:0;overflow:hidden"><div class="gantt"><div class="g-inner">`+monthHead('งาน',cells,r)+`<div class="g-body">`+todayLine(r);
   for(const t of ts){
     h+=`<div class="g-row click" onclick="editTask('${t.id}')">
       <div class="g-name"><b>${isMs(t)?'◆ ':''}${esc(t.name)}</b><span>${fmtD(t.start)}${isMs(t)?'':' – '+fmtD(t.end||t.start)}</span></div>
-      <div class="g-track">${gridHTML(cells)}${todayHTML(r)}${barHTML(r,t)}</div></div>`;
+      <div class="g-track">${gridHTML(cells)}${barHTML(r,t)}</div></div>`;
   }
-  h+=`</div></div></div>`+ganttLegend('<span><i class="ms"></i>Milestone</span><span>คลิกแถวเพื่อแก้ไข</span>');
+  h+=`</div></div></div></div>`+ganttLegend('<span><i class="ms"></i>Milestone</span><span>คลิกแถวเพื่อแก้ไข</span>');
   if(bad)h+=`<div class="rowcount" style="margin-top:10px">ซ่อน ${bad} รายการที่วันที่ไม่ครบหรือวันจบมาก่อนวันเริ่ม</div>`;
   return h;
 }
