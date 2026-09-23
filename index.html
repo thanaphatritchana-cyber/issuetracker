@@ -195,6 +195,8 @@ dialog::backdrop{background:rgba(31,35,72,.45)}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--heading);color:var(--surface);padding:10px 18px;border-radius:7px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:60;max-width:90vw}
 .toast.show{opacity:1}
 .tools{display:flex;gap:10px;flex-wrap:wrap}
+.spacer{flex:1}
+.only-sm{display:none}
 
 /* ---------- gantt ---------- */
 .gantt{overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
@@ -240,7 +242,6 @@ dialog::backdrop{background:rgba(31,35,72,.45)}
 .daterange{display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap}
 .daterange b{font-size:15px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:7px;padding:5px 11px;line-height:1.3;font-variant-numeric:tabular-nums}
 .daterange i{font-style:normal;color:var(--muted);font-size:15px}
-@media (max-width:760px){.plan-sum div.wide{grid-column:span 1}}
 .plan-sum span{font-size:12px;color:var(--muted);display:block}
 .plan-sum b{display:block;font-size:22px;font-weight:600;color:var(--heading);margin-top:6px;line-height:1.2}
 .plan-sum b.warn{color:var(--bug)}
@@ -278,6 +279,19 @@ body.locked{overflow:hidden}
   .topbar{padding:0 16px;height:64px}
   .content{padding:18px 16px 56px}
 }
+@media (max-width:900px){
+  /* คอลัมน์ชื่องานกินพื้นที่มากเกินไปบนจอแคบ ย่อลงและปล่อยให้ชื่อตัดบรรทัดได้ */
+  .gantt{--gname:158px}
+  .g-inner{min-width:640px}
+  .g-name{padding:9px 10px}
+  .g-name b{font-size:12.5px;white-space:normal;line-height:1.3}
+  .g-name span{font-size:10.5px}
+  .plan-sum{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .plan-sum div{padding:13px 14px}
+  .plan-sum b{font-size:19px}
+  .daterange b{font-size:13.5px;padding:4px 9px}
+}
+@media (max-width:760px){.plan-sum div.wide{grid-column:span 1}}
 @media (max-width:640px){
   .kpi-grid{grid-template-columns:1fr 1fr;gap:10px}
   .kpi{padding:14px}
@@ -303,6 +317,22 @@ body.locked{overflow:hidden}
   .rt td.lead{text-align:left;font-weight:400;padding-bottom:6px}
   .rt td.lead::before{content:none}
   tbody tr.click:hover td{background:none}
+
+  .gantt{--gname:120px}
+  .g-inner{min-width:520px}
+  .g-name{padding:8px}
+  .g-name b{font-size:12px}
+  .g-name span{font-size:10px}
+  .g-months span{font-size:11px;padding:7px 4px}
+  .g-weeks span{font-size:9.5px;padding:4px 1px}
+  .g-track{height:38px}
+  .g-bar{top:9px;height:19px}
+  .g-lab{font-size:10px;padding-left:5px;top:12px}
+  .g-legend{gap:10px;font-size:11px}
+  .daterange{gap:7px}
+  .daterange b,.daterange i{font-size:13px}
+  .filter-bar .spacer{display:none}
+  .only-sm{display:inline}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -751,17 +781,17 @@ function weekCells(r){
   const mon=d=>d.toLocaleDateString('th-TH',{month:'short'});
   while(cur<=r.max){
     const last=new Date(cur.getFullYear(),cur.getMonth()+1,0).getDate();
-    let day=1,w=1;
-    while(day<=last){
-      const from=new Date(cur.getFullYear(),cur.getMonth(),day);
-      const to=new Date(cur.getFullYear(),cur.getMonth(),Math.min(day+6,last));
+    /* แบ่งเดือนเป็น 4 สัปดาห์เสมอ W4 กินวันที่เหลือถึงสิ้นเดือน
+       ถ้าแบ่งช่วงละ 7 วันตรง ๆ จะมีเศษกลายเป็น W5 ที่กว้างแค่ 2-3 วัน */
+    [[1,7],[8,14],[15,21],[22,last]].forEach(([a,b],idx)=>{
+      const from=new Date(cur.getFullYear(),cur.getMonth(),a);
+      const to=new Date(cur.getFullYear(),cur.getMonth(),b);
       if(to>=r.min&&from<=r.max){
         const f=from<r.min?r.min:from,t=to>r.max?r.max:to;
-        out.push({label:'W'+w,pct:(daysBetween(f,t)+1)/r.days*100,
+        out.push({label:'W'+(idx+1),pct:(daysBetween(f,t)+1)/r.days*100,
           title:f.getDate()+'-'+t.getDate()+' '+mon(f)});
       }
-      day+=7;w++;
-    }
+    });
     cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
   }
   return out;
@@ -808,12 +838,12 @@ const monthHead=(label,cells,weeks)=>`<div class="g-row g-head"><div class="g-na
   <div class="g-months">${cells.map(c=>`<span style="width:${c.pct}%">${esc(c.label)}</span>`).join('')}</div>
   <div class="g-weeks">${weeks.map(w=>`<span style="width:${w.pct}%" title="${esc(w.title)}">${esc(w.label)}</span>`).join('')}</div>
 </div></div>`;
-const ganttLegend=extra=>`<div class="g-legend"><span><i style="background:var(--accent)"></i>ตามแผน</span><span><i style="background:var(--bug)"></i>ล่าช้า</span><span><i style="background:var(--ok)"></i>เสร็จแล้ว</span>${extra||''}</div>`;
+const ganttLegend=extra=>`<div class="g-legend"><span><i style="background:var(--accent)"></i>ตามแผน</span><span><i style="background:var(--bug)"></i>ล่าช้า</span><span><i style="background:var(--ok)"></i>เสร็จแล้ว</span>${extra||''}<span class="only-sm">ปัดตารางซ้าย-ขวาเพื่อดูช่วงเวลาอื่น</span></div>`;
 
 function vPlan(){
   let h=`<div class="filter-bar">
     <select id="planProj" aria-label="เลือก Project" onchange="UI.planProj=this.value;render()">${projOpts(UI.planProj,'ทุก Project (ภาพรวม)')}</select>
-    <div style="flex:1"></div>
+    <div class="spacer"></div>
     <button class="btn btn-primary" onclick="editTask()">+ เพิ่มงานในแผน</button>
   </div>`;
 
