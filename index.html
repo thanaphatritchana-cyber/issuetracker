@@ -820,7 +820,7 @@ function vPlan(){
   h+=`<div class="card" style="padding:0;overflow:hidden"><div class="gantt"><div class="g-inner">`+monthHead('งาน',cells,r);
   for(const t of ts){
     h+=`<div class="g-row click" onclick="editTask('${t.id}')">
-      <div class="g-name"><b>${isMs(t)?'◆ ':''}${esc(t.name)}</b><span>${esc(t.assigneeId?mName(t.assigneeId):'ยังไม่มอบหมาย')} · ${fmtD(t.start)}${isMs(t)?'':' – '+fmtD(t.end||t.start)}</span></div>
+      <div class="g-name"><b>${isMs(t)?'◆ ':''}${esc(t.name)}</b><span>${fmtD(t.start)}${isMs(t)?'':' – '+fmtD(t.end||t.start)}</span></div>
       <div class="g-track">${gridHTML(cells)}${todayHTML(r)}${barHTML(r,t)}</div></div>`;
   }
   h+=`</div></div></div>`+ganttLegend('<span><i class="ms"></i>Milestone</span><span>คลิกแถวเพื่อแก้ไข</span>');
@@ -839,9 +839,8 @@ function editTask(id){
     <div class="form-group"><label>ประเภท</label><select data-f="kind" id="tKind">${opts([{v:'task',t:'งาน (แท่งเวลา)'},{v:'ms',t:'Milestone (หมุดสำคัญ)'}],isMs(t)?'ms':'task')}</select></div>
     <div class="form-group full"><label>ชื่องาน</label><input type="text" data-f="name" value="${esc(t.name)}" placeholder="เช่น วิเคราะห์ความต้องการ / UAT / Go-live"></div>
     <div class="form-group"><label>วันเริ่ม</label><input type="date" data-f="start" value="${esc(t.start)}"></div>
-    <div class="form-group" id="tEndBox"><label>วันจบ</label><input type="date" data-f="end" value="${esc(t.end)}"></div>
+    <div class="form-group" id="tEndBox"><label>วันสิ้นสุด</label><input type="date" data-f="end" value="${esc(t.end)}"></div>
     <div class="form-group"><label>ความคืบหน้า (%)</label><input type="number" min="0" max="100" step="5" data-f="progress" value="${esc(num(t.progress))}"></div>
-    <div class="form-group"><label>ผู้รับผิดชอบ</label><select data-f="assigneeId">${memberOpts(t.assigneeId,'— ยังไม่มอบหมาย —')}</select></div>
     <div class="form-group full"><span class="hint">Milestone ใช้วันเดียว ระบบตั้งวันจบให้เท่ากับวันเริ่มเอง</span></div>
   </div>`,
   async f=>{
@@ -877,24 +876,27 @@ function vProjects(){
     const open=l.filter(isOpen).length;
     return `<tr class="click" onclick="editProject('${p.id}')">
       <td class="id" data-label="Code">${esc(p.code||'—')}</td>
-      <td class="lead" data-label="Project">${esc(p.name)}${p.owner?`<span class="sub-t">${esc(p.owner)}</span>`:''}</td>
+      <td class="lead" data-label="Project">${esc(p.name)}</td>
+      <td data-label="ช่วงเวลา" style="white-space:nowrap">${p.start||p.end?`${fmtD(p.start)} – ${fmtD(p.end)}`:'<span class="sub-t">—</span>'}</td>
       <td class="n" data-label="Bug">${c('Bug')}</td><td class="n" data-label="Issue">${c('Issue')}</td><td class="n" data-label="CR">${c('CR')}</td>
       <td class="n" data-label="ทั้งหมด">${l.length}</td>
       <td class="n ${open?'late':''}" data-label="ยังไม่ปิด">${open}</td></tr>`}).join('');
   return h+`<div class="card"><div class="rowcount">${S.projects.length} Project</div><div class="table-wrapper"><table class="rt">
-    <thead><tr><th>Code</th><th>Project</th><th class="n">Bug</th><th class="n">Issue</th><th class="n">CR</th><th class="n">ทั้งหมด</th><th class="n">ยังไม่ปิด</th></tr></thead>
+    <thead><tr><th>Code</th><th>Project</th><th>ช่วงเวลา</th><th class="n">Bug</th><th class="n">Issue</th><th class="n">CR</th><th class="n">ทั้งหมด</th><th class="n">ยังไม่ปิด</th></tr></thead>
     <tbody>${rows}</tbody></table></div></div>`;
 }
 function editProject(id){
   const p=id?{...proj(id)}:{};
   modal(id?'Edit Project':'Create New Project',`<div class="form-grid">
     <div class="form-group"><label>Project Code</label><input type="text" data-f="code" value="${esc(p.code)}" placeholder="เช่น DMS-2026"></div>
-    <div class="form-group"><label>ผู้รับผิดชอบ</label><input type="text" data-f="owner" value="${esc(p.owner)}" placeholder="ชื่อ / ทีม"></div>
-    <div class="form-group full"><label>Project Name</label><input type="text" data-f="name" value="${esc(p.name)}" placeholder="เช่น DMS AI Digital Health"></div>
+    <div class="form-group"><label>Project Name</label><input type="text" data-f="name" value="${esc(p.name)}" placeholder="เช่น DMS AI Digital Health"></div>
+    <div class="form-group"><label>วันเริ่ม</label><input type="date" data-f="start" value="${esc(p.start)}"></div>
+    <div class="form-group"><label>วันสิ้นสุด</label><input type="date" data-f="end" value="${esc(p.end)}"></div>
     <div class="form-group full"><label>รายละเอียด</label><textarea data-f="desc">${esc(p.desc)}</textarea></div>
   </div>`,
   async f=>{
     if(!f.name.trim()){toast('กรอก Project Name ก่อนบันทึก');return false}
+    if(f.start&&f.end&&f.end<f.start){toast('วันสิ้นสุดต้องไม่มาก่อนวันเริ่ม');return false}
     await put('projects',{...p,...f,id:p.id||uid(),name:f.name.trim(),code:f.code.trim()});
     toast('บันทึก Project แล้ว');
   },
