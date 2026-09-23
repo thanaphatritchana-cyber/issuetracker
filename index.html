@@ -513,9 +513,38 @@ async function sbLoadAll(){await Promise.all(COLS.map(sbLoad));loaded=true;rende
 
 /* ============ routing ============ */
 const ICON={dash:'▦',issues:'☷',plan:'▤',create:'＋',proj:'▣',users:'◉',settings:'⚙'};
-function route(){const r=(location.hash||'#/dashboard').slice(1);return ROUTES[r]?r:'/dashboard'}
+/* URL เป็น path จริง ไม่มี # เช่น /issuetracker/issues
+   GitHub Pages เป็น static host จึงไม่มีไฟล์ตาม path เหล่านี้ 404.html
+   ทำหน้าที่ส่ง path กลับมาให้ที่ ?p= แล้วเราเขียน URL ที่ถูกต้องคืน */
+const ROUTE_KEYS=Object.keys(ROUTES).map(k=>k.slice(1));
+const BASE=(function(){
+  const seg=location.pathname.split('/');
+  const last=seg[seg.length-1];
+  if(ROUTE_KEYS.indexOf(last)>=0||/\.html?$/i.test(last))seg.pop();
+  const b=seg.join('/');
+  return b.charAt(b.length-1)==='/'?b:b+'/';
+})();
+const path=r=>BASE+String(r).replace(/^\//,'');
+function routeFromURL(){
+  const q=new URLSearchParams(location.search).get('p');
+  let last=q!==null?q:location.pathname.slice(BASE.length);
+  last=last.replace(/^\/+|\/+$/g,'');
+  /* รองรับลิงก์เก่าที่ยังเป็น #/issues */
+  if(!last&&location.hash.indexOf('#/')===0)last=location.hash.slice(2);
+  return ROUTES['/'+last]?'/'+last:'/dashboard';
+}
+let CURRENT=routeFromURL();
+function route(){return CURRENT}
+/* CURRENT เป็นตัวจริงของสถานะหน้า ไม่ใช่ URL เพราะบางสภาพแวดล้อม
+   (เช่น iframe แบบ sandbox) ห้ามแก้ history แต่ต้องยังเปลี่ยนหน้าได้ */
+function go(r,replace){
+  CURRENT=ROUTES[r]?r:'/dashboard';
+  try{history[replace?'replaceState':'pushState']({r:CURRENT},'',path(CURRENT))}catch(e){}
+  setNav(false);render();
+  if(!replace)window.scrollTo(0,0);
+}
 function renderNav(r){
-  const a=(h,t,ic)=>`<a href="#${h}" class="menu-item${r===h?' active':''}"><i>${ic}</i>${t}</a>`;
+  const a=(h,t,ic)=>`<a href="${path(h)}" data-nav="${h}" class="menu-item${r===h?' active':''}"><i>${ic}</i>${t}</a>`;
   $('#nav').innerHTML=
     `<div class="menu-title">MAIN</div>`+
     a('/dashboard','Dashboard',ICON.dash)+
@@ -539,7 +568,14 @@ function render(){
   if(focusId){const f=document.getElementById(focusId);if(f){f.focus();try{f.setSelectionRange(pos,pos)}catch(e){}}}
 }
 function setNav(open){document.body.classList.toggle('nav-open',open);$('#menuBtn').setAttribute('aria-expanded',open)}
-window.addEventListener('hashchange',()=>{setNav(false);render();window.scrollTo(0,0)});
+window.addEventListener('popstate',()=>{CURRENT=routeFromURL();setNav(false);render()});
+/* ลิงก์ภายในทั้งหมดเปลี่ยนหน้าโดยไม่โหลดใหม่ แต่ยังเปิดแท็บใหม่ได้ตามปกติ */
+document.addEventListener('click',e=>{
+  const a=e.target.closest&&e.target.closest('a[data-nav]');
+  if(!a||e.defaultPrevented)return;
+  if(e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
+  e.preventDefault();go(a.getAttribute('data-nav'));
+});
 $('#menuBtn').onclick=()=>setNav(!document.body.classList.contains('nav-open'));
 $('#scrim').onclick=()=>setNav(false);
 $('#nav').addEventListener('click',e=>{if(e.target.closest('a,button'))setNav(false)});
@@ -639,7 +675,7 @@ function emptyState(title,msg,btn){
 function vDashboard(){
   let h=filterBar();
   if(!hasAny())return h+emptyState('ยังไม่มีข้อมูลในระบบ','เริ่มจากสร้าง Project แล้วบันทึก Issue หรือโหลดข้อมูลตัวอย่างเพื่อดูการทำงาน',
-    `<a class="btn" href="#/projects">ไปที่ Projects</a>${loaded?'<button class="btn btn-primary" onclick="seed()">โหลดข้อมูลตัวอย่าง</button>':''}`);
+    `<a class="btn" href="${path('/projects')}" data-nav="/projects">ไปที่ Projects</a>${loaded?'<button class="btn btn-primary" onclick="seed()">โหลดข้อมูลตัวอย่าง</button>':''}`);
 
   const list=filtered();
   const cnt=t=>list.filter(i=>i.type===t).length;
@@ -665,11 +701,11 @@ function vDashboard(){
 
   const projs=sortedProjs().filter(p=>list.some(i=>i.projectId===p.id));
   h+=`<div class="card"><div class="card-header"><div><div class="card-title">Project Overview</div><div class="card-sub">จำนวนรายการแยกตาม Project</div></div>
-    <a class="btn btn-sm" href="#/projects">จัดการ Project</a></div>`;
+    <a class="btn btn-sm" href="${path('/projects')}" data-nav="/projects">จัดการ Project</a></div>`;
   h+=projs.length?`<div class="project-grid">${projs.map(p=>{
     const l=list.filter(i=>i.projectId===p.id);
     const c=t=>l.filter(i=>i.type===t).length;
-    return `<button type="button" class="project-card" onclick="UI.proj='${p.id}';location.hash='#/issues'">
+    return `<button type="button" class="project-card" onclick="UI.proj='${p.id}';go('/issues')">
       <div class="project-name">${esc(p.name)}</div><div class="project-code">${esc(p.code||'—')}</div>
       <div class="project-count">
         <div class="count-box bug-box"><strong>${c('Bug')}</strong>Bug</div>
@@ -680,7 +716,7 @@ function vDashboard(){
 
   const recent=[...list].sort(sortNewest).slice(0,8);
   h+=`<div class="card"><div class="card-header"><div><div class="card-title">Recent Issues</div><div class="card-sub">รายการ Bug / Issue / CR ล่าสุด</div></div>
-    <a class="btn btn-sm" href="#/issues">ดูทั้งหมด</a></div>`;
+    <a class="btn btn-sm" href="${path('/issues')}" data-nav="/issues">ดูทั้งหมด</a></div>`;
   h+=recent.length?`<div class="table-wrapper"><table class="rt"><thead>${ISSUE_HEAD}</thead><tbody>${issueRows(recent)}</tbody></table></div>`
     :'<div class="empty"><span>ไม่พบรายการตามตัวกรองนี้</span></div>';
   return h+'</div>';
@@ -692,7 +728,7 @@ function vIssues(){
     <select id="fPri" aria-label="Priority" onchange="UI.pri=this.value;render()">${dictOpts(PRI,UI.pri,'ทุก Priority')}</select>`;
   let h=filterBar(extra);
   if(!S.issues.length)return h+emptyState('ยังไม่มี Issue','บันทึก Bug / Issue / CR รายการแรกเข้าระบบ',
-    S.projects.length?'<button class="btn btn-primary" onclick="editIssue()">+ เพิ่ม Issue</button>':'<a class="btn btn-primary" href="#/projects">สร้าง Project ก่อน</a>');
+    S.projects.length?'<button class="btn btn-primary" onclick="editIssue()">+ เพิ่ม Issue</button>':`<a class="btn btn-primary" href="${path('/projects')}" data-nav="/projects">สร้าง Project ก่อน</a>`);
   const list=filtered().sort((a,b)=>(PRIORDER[a.priority]??9)-(PRIORDER[b.priority]??9)||String(a.due||'9').localeCompare(String(b.due||'9'))||sortNewest(a,b));
   if(!list.length)return h+emptyState('ไม่พบ Issue ตามเงื่อนไข','ลองล้างตัวกรองหรือเปลี่ยนคำค้น');
   const late=list.filter(isLate).length;
@@ -703,7 +739,7 @@ function vIssues(){
 
 /* ============ Issue modal ============ */
 function editIssue(id){
-  if(!S.projects.length){toast('สร้าง Project ก่อน แล้วจึงเพิ่ม Issue');location.hash='#/projects';return}
+  if(!S.projects.length){toast('สร้าง Project ก่อน แล้วจึงเพิ่ม Issue');go('/projects');return}
   const isNew=!id;
   const cur=id?S.issues.find(x=>x.id===id):null;
   if(id&&!cur){toast('ไม่พบรายการนี้แล้ว');return}
@@ -849,7 +885,7 @@ function vPlan(){
     <button class="btn btn-primary" onclick="editTask()">+ เพิ่มงานในแผน</button>
   </div>`;
 
-  if(!S.projects.length)return h+emptyState('ยังไม่มี Project','สร้าง Project ก่อน แล้วจึงวางแผนงานได้','<a class="btn btn-primary" href="#/projects">ไปที่ Projects</a>');
+  if(!S.projects.length)return h+emptyState('ยังไม่มี Project','สร้าง Project ก่อน แล้วจึงวางแผนงานได้',`<a class="btn btn-primary" href="${path('/projects')}" data-nav="/projects">ไปที่ Projects</a>`);
 
   /* ภาพรวม: หนึ่งแถวต่อหนึ่งโครงการ ย่อจากงานทั้งหมดในโครงการนั้น */
   if(UI.planProj==='all'){
@@ -920,7 +956,7 @@ function vPlan(){
 }
 
 function editTask(id){
-  if(!S.projects.length){toast('สร้าง Project ก่อน แล้วจึงวางแผนงาน');location.hash='#/projects';return}
+  if(!S.projects.length){toast('สร้าง Project ก่อน แล้วจึงวางแผนงาน');go('/projects');return}
   const cur=id?S.tasks.find(x=>x.id===id):null;
   if(id&&!cur){toast('ไม่พบงานนี้แล้ว');return}
   const t=cur?{...cur}:{projectId:(UI.planProj!=='all'&&UI.planProj)||sortedProjs()[0].id,
@@ -1259,6 +1295,10 @@ $('#themeBtn').onclick=toggleTheme;
 
 /* ============ boot ============ */
 loadLocal();render();
+/* มาจาก 404.html (?p=) หรือลิงก์เก่าที่มี # ให้เขียน URL สะอาดทับทันที */
+if(location.search.indexOf('p=')>=0||location.hash.indexOf('#/')===0){
+  try{history.replaceState({r:CURRENT},'',path(CURRENT))}catch(e){}
+}
 document.addEventListener('DOMContentLoaded',mountCharts);
 
 

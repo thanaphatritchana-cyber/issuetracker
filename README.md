@@ -103,7 +103,7 @@ const SUPA_KEY='eyJhbGciOi...';
 | ส่วน | ที่อยู่ในไฟล์ | หมายเหตุ |
 |---|---|---|
 | โทเคนสี (ธีมน้ำเงิน-ขาว) | `:root` ในบล็อก `<style>` | แก้สีทั้งระบบได้จากจุดเดียว มีชุด dark mode แยก |
-| routing | `route()` / `render()` / `ROUTES` | SPA ด้วย hash routing (`#/dashboard`, `#/issues`, ...) |
+| routing | `route()` / `go()` / `BASE` / `ROUTES` | SPA ด้วย path จริง ไม่มี `#` (`/issuetracker/issues`) `404.html` ส่ง path กลับมาที่ `?p=` ให้ |
 | ตัวกรอง | `UI` / `filtered()` / `filterBar()` | ตัวกรองชุดเดียวใช้ร่วมกันทั้ง Dashboard และ All Issues |
 | กราฟ | `chartSlot()` / `mountCharts()` | Chart.js จาก CDN สีอ่านจาก CSS variable ตอน mount จึงตามธีมสว่าง/มืดเอง |
 | การเก็บข้อมูล | `put()` / `del()` / `sbLoad()` | สลับระหว่าง 3 โหมดข้างบนให้เอง |

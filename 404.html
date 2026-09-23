@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Issue Tracker</title>
+<style>
+  html{color-scheme:light}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+       background:#F6F8FC;color:#6E7899;
+       font-family:'Prompt',system-ui,-apple-system,'Segoe UI',Tahoma,sans-serif;font-size:14px}
+</style>
+<script>
+/* GitHub Pages เป็น static host ไม่มีไฟล์จริงตาม path อย่าง /issuetracker/issues
+   จึงตอบด้วยไฟล์นี้ หน้าที่ของมันคือส่ง path ที่ผู้ใช้เปิดกลับไปให้ index.html
+   ผ่าน ?p= แล้ว index.html จะเขียน URL ที่ถูกต้องคืนด้วย replaceState
+
+   ใช้ segment แรกเป็น base เสมอ (โครงสร้างของ project pages คือ /<repo>/...)
+   เพื่อไม่ให้ redirect วนซ้ำเมื่อเจอ path ที่ลึกกว่าหนึ่งชั้น */
+(function () {
+  var seg = location.pathname.split('/').filter(Boolean);
+  var base = seg.length ? '/' + seg[0] + '/' : '/';
+  var route = seg.length > 1 ? seg[1] : '';
+  location.replace(base + (route ? '?p=' + encodeURIComponent(route) : '') + location.hash);
+})();
+</script>
+</head>
+<body>กำลังเปิดหน้า…</body>
+</html>
