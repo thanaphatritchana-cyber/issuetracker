@@ -415,6 +415,9 @@ function errMsg(e){
 }
 function sbErr(e){
   const m=String((e&&e.message)||'');
+  /* PGRST205 = PostgREST มองไม่เห็นตาราง แปลว่ายังไม่ได้รัน supabase-setup.sql */
+  if((e&&e.code==='PGRST205')||/schema cache/i.test(m))
+    return 'ฐานข้อมูลยังไม่มีตารางนี้ ต้องรัน supabase-setup.sql ใน Supabase ก่อน';
   if(/row-level security|violates row-level/i.test(m))return 'คุณไม่มีสิทธิ์แก้ข้อมูลนี้';
   if(/JWT|token|session/i.test(m))return 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่';
   if(/Failed to fetch|NetworkError/i.test(m))return 'ต่อฐานข้อมูลไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่';
