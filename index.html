@@ -235,15 +235,15 @@ dialog::backdrop{background:rgba(31,35,72,.45)}
 .g-ms.done i{background:var(--ok)}
 .g-today{position:absolute;top:0;bottom:22px;width:2px;background:var(--bug);z-index:3;pointer-events:none}
 .g-today b{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:500;color:var(--bug);white-space:nowrap;background:var(--surface);padding:0 5px}
-.plan-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px}
-.plan-sum div{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
-.plan-sum div.wide{grid-column:span 2}
+.plan-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.plan-sum.detail{grid-template-columns:minmax(250px,1.95fr) minmax(100px,.78fr) minmax(100px,.78fr) minmax(100px,.78fr) minmax(135px,1.15fr)}
+.plan-sum div{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;min-width:0}
 .plan-sum .sub{font-size:11.5px;color:var(--muted);margin-top:8px;display:block}
-.daterange{display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap}
-.daterange b{font-size:15px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:7px;padding:5px 11px;line-height:1.3;font-variant-numeric:tabular-nums}
+.daterange{display:flex;align-items:center;gap:8px;margin-top:9px;flex-wrap:nowrap}
+.daterange b{font-size:15px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:7px;padding:5px 10px;line-height:1.3;font-variant-numeric:tabular-nums;white-space:nowrap;margin-top:0}
 .daterange i{font-style:normal;color:var(--muted);font-size:15px}
 .plan-sum span{font-size:12px;color:var(--muted);display:block}
-.plan-sum b{display:block;font-size:22px;font-weight:600;color:var(--heading);margin-top:6px;line-height:1.2}
+.plan-sum b{display:block;font-size:20px;font-weight:600;color:var(--heading);margin-top:6px;line-height:1.2}
 .plan-sum b.warn{color:var(--bug)}
 .pbar{height:7px;border-radius:4px;background:var(--neutral-bg);overflow:hidden;margin-top:9px}
 .pbar i{display:block;height:100%;background:var(--accent)}
@@ -286,12 +286,13 @@ body.locked{overflow:hidden}
   .g-name{padding:9px 10px}
   .g-name b{font-size:12.5px;white-space:normal;line-height:1.3}
   .g-name span{font-size:10.5px}
-  .plan-sum{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .plan-sum,.plan-sum.detail{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .plan-sum.detail div.wide{grid-column:span 3}
   .plan-sum div{padding:13px 14px}
   .plan-sum b{font-size:19px}
   .daterange b{font-size:13.5px;padding:4px 9px}
 }
-@media (max-width:760px){.plan-sum div.wide{grid-column:span 1}}
+@media (max-width:760px){.plan-sum,.plan-sum.detail{grid-template-columns:repeat(2,minmax(0,1fr))}.plan-sum.detail div.wide{grid-column:span 2}}
 @media (max-width:640px){
   .kpi-grid{grid-template-columns:1fr 1fr;gap:10px}
   .kpi{padding:14px}
@@ -334,6 +335,7 @@ body.locked{overflow:hidden}
   .filter-bar .spacer{display:none}
   .only-sm{display:inline}
 }
+@media (max-width:430px){.plan-sum,.plan-sum.detail{grid-template-columns:minmax(0,1fr)}.plan-sum.detail div.wide{grid-column:span 1}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -895,7 +897,7 @@ function vPlan(){
   const remain=daysBetween(todayD(),end);
   const nextMs=ts.filter(t=>isMs(t)&&tStart(t)>=todayD())[0];
 
-  h+=`<div class="plan-sum">
+  h+=`<div class="plan-sum detail">
     <div class="wide"><span>ช่วงเวลาโครงการ</span>
       <div class="daterange"><b>${fmtD(ts[0].start)}</b><i>→</i><b>${fmtD(ymd(end))}</b></div>
       <span class="sub">รวม ${daysBetween(tStart(ts[0]),end)+1} วัน</span></div>
