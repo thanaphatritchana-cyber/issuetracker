@@ -22,6 +22,8 @@
   --bug:#D64545; --bug-bg:#FDECEC;
   --issue:#B7791F; --issue-bg:#FFF5E5;
   --cr:#0A7373; --cr-bg:#E2F2F2;
+  --dev:#4F46C4; --dev-bg:#EAE9FA;
+  --wait:#B45309; --wait-bg:#FCF0E4;
   --ok:#2E8B57; --ok-bg:#E8F5EE;
   --neutral:#5C6480; --neutral-bg:#EEF1F8;
   --scrim:rgba(27,37,71,.45);
@@ -40,6 +42,8 @@
   --bug:#EE6F66; --bug-bg:#3D1E22;
   --issue:#DFA84B; --issue-bg:#3A2D14;
   --cr:#34B3B3; --cr-bg:#0B3234;
+  --dev:#8C87F0; --dev-bg:#221F4E;
+  --wait:#E0A45C; --wait-bg:#3A2A14;
   --ok:#3FB489; --ok-bg:#10352A;
   --neutral:#9FADCE; --neutral-bg:#22305A;
   --scrim:rgba(5,10,24,.6);
@@ -154,8 +158,11 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .status{font-size:11px;padding:4px 9px;border-radius:20px;white-space:nowrap;display:inline-block}
 .status-open{background:var(--neutral-bg);color:var(--neutral)}
 .status-progress{background:var(--accent-soft);color:var(--accent)}
-.status-resolved{background:var(--ok-bg);color:var(--ok)}
-.status-closed{background:var(--neutral-bg);color:var(--faint)}
+.status-done{background:var(--cr-bg);color:var(--cr)}
+.status-deploy_dev{background:var(--dev-bg);color:var(--dev)}
+.status-testing{background:var(--issue-bg);color:var(--issue)}
+.status-wait_prod{background:var(--wait-bg);color:var(--wait)}
+.status-deploy_prod{background:var(--ok-bg);color:var(--ok)}
 .priority-critical,.priority-high{color:var(--bug);font-weight:600}
 .priority-medium{color:var(--issue);font-weight:600}
 .priority-low{color:var(--ok);font-weight:600}
@@ -201,11 +208,15 @@ dialog::backdrop{background:rgba(31,35,72,.45)}
 .g-name{padding:10px 14px;font-size:13px;font-weight:300;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0}
 .g-name b{font-weight:500;font-size:13.5px;color:var(--heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .g-name span{font-size:11.5px;color:var(--muted)}
-.g-head{background:var(--surface-2);position:sticky;top:0;z-index:4}
-.g-head .g-name{font-size:12px;color:var(--muted);font-weight:500}
-.g-months{display:flex;height:100%}
-.g-months span{border-left:1px solid var(--border);font-size:11px;color:var(--muted);padding:10px 6px;white-space:nowrap;overflow:hidden;box-sizing:border-box}
+.g-head{background:var(--accent-soft);position:sticky;top:0;z-index:4}
+.g-head .g-name{font-size:12px;color:var(--accent);font-weight:600;border-right-color:var(--accent-lite);justify-content:center}
+.g-headcols{display:flex;flex-direction:column;min-width:0}
+.g-months{display:flex}
+.g-months span{border-left:1px solid var(--accent-lite);font-size:12px;color:var(--accent);font-weight:600;padding:8px 8px;white-space:nowrap;overflow:hidden;box-sizing:border-box;text-align:center}
 .g-months span:first-child{border-left:0}
+.g-weeks{display:flex;border-top:1px solid var(--accent-lite)}
+.g-weeks span{border-left:1px solid var(--accent-lite);font-size:10.5px;color:var(--accent);opacity:.85;padding:5px 2px;white-space:nowrap;overflow:hidden;box-sizing:border-box;text-align:center}
+.g-weeks span:first-child{border-left:0}
 .g-track{position:relative;height:42px}
 .g-grid{position:absolute;inset:0;display:flex;pointer-events:none}
 .g-grid i{border-left:1px solid var(--border);box-sizing:border-box}
@@ -224,6 +235,12 @@ dialog::backdrop{background:rgba(31,35,72,.45)}
 .g-today b{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:500;color:var(--bug);white-space:nowrap;background:var(--surface);padding:0 5px}
 .plan-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px}
 .plan-sum div{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.plan-sum div.wide{grid-column:span 2}
+.plan-sum .sub{font-size:11.5px;color:var(--muted);margin-top:8px;display:block}
+.daterange{display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap}
+.daterange b{font-size:15px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:7px;padding:5px 11px;line-height:1.3;font-variant-numeric:tabular-nums}
+.daterange i{font-style:normal;color:var(--muted);font-size:15px}
+@media (max-width:760px){.plan-sum div.wide{grid-column:span 1}}
 .plan-sum span{font-size:12px;color:var(--muted);display:block}
 .plan-sum b{display:block;font-size:22px;font-weight:600;color:var(--heading);margin-top:6px;line-height:1.2}
 .plan-sum b.warn{color:var(--bug)}
@@ -343,11 +360,17 @@ const S={projects:[],issues:[],members:[],tasks:[]};
 
 const TYPES={
   Bug:{label:'Bug',sub:'Defect / Error',icon:'●',pre:'BUG'},
-  Issue:{label:'Issue',sub:'Problem / Support',icon:'!',pre:'ISS'},
+  Issue:{label:'Utest',sub:'Unit Test',icon:'!',pre:'ISS'},
   CR:{label:'Change Request',sub:'Requirement Change',icon:'↻',pre:'CR'}
 };
 const TKEYS=['Bug','Issue','CR'];
-const STATUS={open:'Open',progress:'In Progress',resolved:'Resolved',closed:'Closed'};
+const STATUS={open:'Open',progress:'InProgress',done:'Done',deploy_dev:'Deploy Dev',
+  testing:'Testing',wait_prod:'Waiting Deploy Prod',deploy_prod:'Deploy Prod'};
+/* ค่าที่เคยบันทึกไว้ก่อนเพิ่มสถานะ แปลงตอนอ่านเพื่อไม่ให้ข้อมูลเก่ากลายเป็นช่องว่าง */
+const STATUS_OLD={resolved:'done',closed:'deploy_prod'};
+const normStatus=v=>STATUS[v]?v:(STATUS_OLD[v]||'open');
+/* ปิดงานจริงเมื่อขึ้น production แล้วเท่านั้น Done คือเสร็จฝั่งพัฒนา ยังไม่ถึงปลายทาง */
+const FINAL_STATUS='deploy_prod';
 const PRI={critical:'Critical',high:'High',medium:'Medium',low:'Low'};
 const PRIORDER={critical:0,high:1,medium:2,low:3};
 const ENVS=['DEV','UAT','PROD'];
@@ -379,8 +402,8 @@ const pCode=id=>{const p=proj(id);return p&&p.code?p.code:'—'};
 const mName=id=>{const m=S.members.find(x=>x.id===id);return m?m.name:'—'};
 const sortedProjs=()=>[...S.projects].sort((a,b)=>String(a.code||'~').localeCompare(String(b.code||'~'),'th',{numeric:true}));
 const sortedMembers=()=>[...S.members].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'th'));
-const isLate=i=>i.due&&i.due<today()&&i.status!=='resolved'&&i.status!=='closed';
-const isOpen=i=>i.status!=='closed'&&i.status!=='resolved';
+const isOpen=i=>normStatus(i.status)!==FINAL_STATUS;
+const isLate=i=>!!(i.due&&i.due<today()&&isOpen(i));
 const hasAny=()=>S.projects.length||S.issues.length||S.members.length;
 
 function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove('show'),2600)}
@@ -546,7 +569,7 @@ function filtered(o={}){
     (o.ignoreYear||UI.year==='all'||String(i.created||'').slice(0,4)===UI.year)&&
     (UI.proj==='all'||i.projectId===UI.proj)&&
     (UI.type==='all'||i.type===UI.type)&&
-    (o.ignoreStatus||UI.status==='all'||i.status===UI.status)&&
+    (o.ignoreStatus||UI.status==='all'||normStatus(i.status)===UI.status)&&
     (o.ignorePri||UI.pri==='all'||i.priority===UI.pri)&&
     (!q||[i.code,i.title,pName(i.projectId),pCode(i.projectId),i.desc,mName(i.assigneeId)].join(' ').toLowerCase().includes(q)));
 }
@@ -572,7 +595,7 @@ function issueRows(list){
     <td class="lead" data-label="Issue">${esc(i.title)}</td>
     <td data-label="Priority" class="priority-${esc(i.priority)}">${esc(PRI[i.priority]||'—')}</td>
     <td data-label="Assignee">${esc(i.assigneeId?mName(i.assigneeId):'—')}</td>
-    <td data-label="Status"><span class="status status-${esc(i.status)}">${esc(STATUS[i.status]||'—')}</span></td>
+    <td data-label="Status"><span class="status status-${esc(normStatus(i.status))}">${esc(STATUS[normStatus(i.status)])}</span></td>
     <td data-label="Due Date" class="${isLate(i)?'late':''}" style="white-space:nowrap">${fmtD(i.due)}</td></tr>`).join('');
 }
 const ISSUE_HEAD='<tr><th>ID</th><th>Type</th><th>Project</th><th>Issue</th><th>Priority</th><th>Assignee</th><th>Status</th><th>Due Date</th></tr>';
@@ -605,7 +628,7 @@ function vDashboard(){
       ${chartSlot(barChart(ys,TKEYS.map(t=>({label:TYPES[t].label==='Change Request'?'CR':TYPES[t].label,color:t==='Bug'?'bug':t==='Issue'?'issue':'cr',
         data:ys.map(y=>trend.filter(i=>i.type===t&&String(i.created||'').slice(0,4)===y).length)}))),230)}</div>
     <div class="card"><div class="card-header"><div><div class="card-title">Issue Distribution</div><div class="card-sub">${esc(yearLabel)}</div></div></div>
-      ${chartSlot(doughnut(['Bug','Issue','CR'],TKEYS.map(t=>cnt(t)),['bug','issue','cr']),230)}</div>
+      ${chartSlot(doughnut(TKEYS.map(t=>t==='CR'?'CR':TYPES[t].label),TKEYS.map(t=>cnt(t)),['bug','issue','cr']),230)}</div>
   </div>`;
 
   const projs=sortedProjs().filter(p=>list.some(i=>i.projectId===p.id));
@@ -659,7 +682,7 @@ function editIssue(id){
     <div class="form-group"><label>Project</label><select data-f="projectId" id="iProj">${projOpts(i.projectId)}</select></div>
     <div class="form-group full"><label>Issue Title</label><input type="text" data-f="title" id="iTitle" value="${esc(i.title)}" placeholder="ระบุชื่อ Issue..."></div>
     <div class="form-group"><label>Priority</label><select data-f="priority">${dictOpts(PRI,i.priority)}</select></div>
-    <div class="form-group"><label>Status</label><select data-f="status">${dictOpts(STATUS,i.status)}</select></div>
+    <div class="form-group"><label>Status</label><select data-f="status">${dictOpts(STATUS,normStatus(i.status))}</select></div>
     <div class="form-group"><label>Assignee</label><select data-f="assigneeId">${memberOpts(i.assigneeId,'— ยังไม่มอบหมาย —')}</select></div>
     <div class="form-group"><label>Environment</label><select data-f="env">${envOpts(i.env)}</select></div>
     <div class="form-group"><label>Issue ID</label><input type="text" data-f="code" id="iCode" value="${esc(i.code)}"></div>
@@ -720,6 +743,29 @@ function monthCells(r){
   }
   return out;
 }
+/* สัปดาห์นับใหม่ทุกต้นเดือน (W1 = วันที่ 1-7) ช่วงกราฟเริ่มที่ต้นเดือนเสมอ
+   ขอบสัปดาห์จึงตรงกับขอบเดือนพอดี ไม่มีสัปดาห์คร่อมสองเดือน */
+function weekCells(r){
+  const out=[];
+  let cur=new Date(r.min.getFullYear(),r.min.getMonth(),1);
+  const mon=d=>d.toLocaleDateString('th-TH',{month:'short'});
+  while(cur<=r.max){
+    const last=new Date(cur.getFullYear(),cur.getMonth()+1,0).getDate();
+    let day=1,w=1;
+    while(day<=last){
+      const from=new Date(cur.getFullYear(),cur.getMonth(),day);
+      const to=new Date(cur.getFullYear(),cur.getMonth(),Math.min(day+6,last));
+      if(to>=r.min&&from<=r.max){
+        const f=from<r.min?r.min:from,t=to>r.max?r.max:to;
+        out.push({label:'W'+w,pct:(daysBetween(f,t)+1)/r.days*100,
+          title:f.getDate()+'-'+t.getDate()+' '+mon(f)});
+      }
+      day+=7;w++;
+    }
+    cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+  }
+  return out;
+}
 const pctAt=(r,d)=>daysBetween(r.min,d)/r.days*100;
 const gridHTML=cells=>`<div class="g-grid">${cells.map(c=>`<i style="width:${c.pct}%"></i>`).join('')}</div>`;
 /* เส้นวันนี้เส้นเดียวพาดทุกแถว วางบน .g-body ไม่ใช่ในแต่ละแถว
@@ -758,7 +804,10 @@ function barHTML(r,t){
       <div class="g-fill" style="width:${pg}%"></div></div>
     <div class="g-lab" style="left:${left+w}%">${pg}%</div>`;
 }
-const monthHead=(label,cells,r)=>`<div class="g-row g-head"><div class="g-name">${esc(label)}</div><div class="g-track" style="height:auto"><div class="g-months">${cells.map(c=>`<span style="width:${c.pct}%">${esc(c.label)}</span>`).join('')}</div></div></div>`;
+const monthHead=(label,cells,weeks)=>`<div class="g-row g-head"><div class="g-name">${esc(label)}</div><div class="g-headcols">
+  <div class="g-months">${cells.map(c=>`<span style="width:${c.pct}%">${esc(c.label)}</span>`).join('')}</div>
+  <div class="g-weeks">${weeks.map(w=>`<span style="width:${w.pct}%" title="${esc(w.title)}">${esc(w.label)}</span>`).join('')}</div>
+</div></div>`;
 const ganttLegend=extra=>`<div class="g-legend"><span><i style="background:var(--accent)"></i>ตามแผน</span><span><i style="background:var(--bug)"></i>ล่าช้า</span><span><i style="background:var(--ok)"></i>เสร็จแล้ว</span>${extra||''}</div>`;
 
 function vPlan(){
@@ -779,20 +828,20 @@ function vPlan(){
     }).filter(Boolean);
     if(!rows.length)return h+emptyState('ยังไม่มีแผนงาน','เลือก Project แล้วเพิ่มงานเข้าไป ระบบจะวาด Gantt ให้อัตโนมัติ','<button class="btn btn-primary" onclick="editTask()">+ เพิ่มงานในแผน</button>');
     const all=[];rows.forEach(x=>x.ts.forEach(t=>all.push(t)));
-    const r=planRange(all),cells=monthCells(r);
+    const r=planRange(all),cells=monthCells(r),weeks=weekCells(r);
     const lateN=rows.filter(x=>anyLate(x.ts)).length;
     h+=`<div class="plan-sum">
       <div><span>โครงการที่มีแผน</span><b>${rows.length}</b></div>
       <div><span>ความคืบหน้าเฉลี่ย</span><b>${Math.round(rows.reduce((s,x)=>s+x.prog,0)/rows.length)}%</b></div>
       <div><span>โครงการที่มีงานล่าช้า</span><b class="${lateN?'warn':''}">${lateN}</b></div>
     </div>`;
-    h+=`<div class="card" style="padding:0;overflow:hidden"><div class="gantt"><div class="g-inner">`+monthHead('Project',cells,r)+`<div class="g-body">`+todayLine(r);
+    h+=`<div class="card" style="padding:0;overflow:hidden"><div class="gantt"><div class="g-inner">`+monthHead('Project',cells,weeks)+`<div class="g-body">`+todayLine(r);
     for(const x of rows){
       const left=pctAt(r,x.start),w=(daysBetween(x.start,x.end)+1)/r.days*100;
       const cls=anyLate(x.ts)?'late':(x.prog>=100?'done':'');
       h+=`<div class="g-row click" onclick="UI.planProj='${x.p.id}';render()">
         <div class="g-name"><b>${esc(x.p.name)}</b><span>${esc(x.p.code||'—')} · ${x.ts.length} งาน</span></div>
-        <div class="g-track">${gridHTML(cells)}
+        <div class="g-track">${gridHTML(weeks)}
           <div class="g-bar ${cls}" style="left:${left}%;width:${w}%" title="${esc(x.p.name)} · ${x.prog}%"><div class="g-fill" style="width:${x.prog}%"></div></div>
           <div class="g-lab" style="left:${left+w}%">${x.prog}%</div></div></div>`;
     }
@@ -809,7 +858,7 @@ function vPlan(){
        :'เพิ่มงานแรกเข้าไป เช่น วิเคราะห์ความต้องการ / ออกแบบ / พัฒนา / UAT / Go-live',
     '<button class="btn btn-primary" onclick="editTask()">+ เพิ่มงานในแผน</button>');
 
-  const r=planRange(ts),cells=monthCells(r);
+  const r=planRange(ts),cells=monthCells(r),weeks=weekCells(r);
   const end=new Date(Math.max.apply(null,ts.map(t=>+tEnd(t))));
   const prog=overallProgress(ts);
   const lateN=ts.filter(t=>taskLate(t)||msLate(t)).length;
@@ -817,18 +866,21 @@ function vPlan(){
   const nextMs=ts.filter(t=>isMs(t)&&tStart(t)>=todayD())[0];
 
   h+=`<div class="plan-sum">
-    <div><span>ช่วงเวลาโครงการ</span><b style="font-size:15px">${fmtD(ts[0].start)}<br>ถึง ${fmtD(ymd(end))}</b></div>
+    <div class="wide"><span>ช่วงเวลาโครงการ</span>
+      <div class="daterange"><b>${fmtD(ts[0].start)}</b><i>→</i><b>${fmtD(ymd(end))}</b></div>
+      <span class="sub">รวม ${daysBetween(tStart(ts[0]),end)+1} วัน</span></div>
     <div><span>ความคืบหน้ารวม</span><b>${prog}%</b><div class="pbar"><i style="width:${prog}%"></i></div></div>
     <div><span>${remain>=0?'เหลืออีก':'เลยกำหนดมาแล้ว'}</span><b class="${remain<0?'warn':''}">${Math.abs(remain)} วัน</b></div>
     <div><span>งานล่าช้า</span><b class="${lateN?'warn':''}">${lateN}</b></div>
-    <div><span>หมุดถัดไป</span><b style="font-size:14px">${nextMs?esc(nextMs.name)+'<br><span style="font-size:12px;font-weight:400;color:var(--muted)">'+fmtD(nextMs.start)+'</span>':'—'}</b></div>
+    <div><span>Milestone ถัดไป</span><b style="font-size:14px">${nextMs?esc(nextMs.name)+'<br><span style="font-size:12px;font-weight:400;color:var(--muted)">'+fmtD(nextMs.start)+'</span>':'—'}</b>
+      <span class="sub">${nextMs?'จุดส่งมอบถัดไปที่ต้องถึง':'ยังไม่มี Milestone ในแผน'}</span></div>
   </div>`;
 
-  h+=`<div class="card" style="padding:0;overflow:hidden"><div class="gantt"><div class="g-inner">`+monthHead('งาน',cells,r)+`<div class="g-body">`+todayLine(r);
+  h+=`<div class="card" style="padding:0;overflow:hidden"><div class="gantt"><div class="g-inner">`+monthHead('งาน',cells,weeks)+`<div class="g-body">`+todayLine(r);
   for(const t of ts){
     h+=`<div class="g-row click" onclick="editTask('${t.id}')">
       <div class="g-name"><b>${isMs(t)?'◆ ':''}${esc(t.name)}</b><span>${fmtD(t.start)}${isMs(t)?'':' – '+fmtD(t.end||t.start)}</span></div>
-      <div class="g-track">${gridHTML(cells)}${barHTML(r,t)}</div></div>`;
+      <div class="g-track">${gridHTML(weeks)}${barHTML(r,t)}</div></div>`;
   }
   h+=`</div></div></div></div>`+ganttLegend('<span><i class="ms"></i>Milestone</span><span>คลิกแถวเพื่อแก้ไข</span>');
   if(bad)h+=`<div class="rowcount" style="margin-top:10px">ซ่อน ${bad} รายการที่วันที่ไม่ครบหรือวันจบมาก่อนวันเริ่ม</div>`;
@@ -1071,7 +1123,7 @@ async function seed(){
     Issue:['User ไม่สามารถ Login ได้','ขอสิทธิ์เข้าถึงเมนูรายงาน','ระบบส่งอีเมลแจ้งเตือนช้ากว่าปกติ','ผู้ใช้ลืมรหัสผ่าน ขอ reset','สอบถามวิธีใช้งานเมนูค้นหา','ข้อมูลเก่าก่อนปี 2024 ค้นหาไม่เจอ','ขอเพิ่มผู้ใช้งานใหม่ 5 คน','ขอกู้คืนเอกสารที่ลบผิด'],
     CR:['เพิ่ม Filter หมวดหมู่','เพิ่มการส่งออกรายงานเป็น PDF','ปรับหน้าจอ Dashboard ให้แสดงกราฟ','เพิ่ม Single Sign-On กับระบบกลาง','ปรับ Workflow การอนุมัติเอกสาร','เพิ่มการแจ้งเตือนผ่าน LINE','เพิ่มช่องค้นหาแบบขั้นสูง']};
   const pri=['critical','high','high','medium','medium','medium','low'];
-  const st=['open','progress','progress','resolved','closed','closed','open'];
+  const st=['open','progress','done','deploy_dev','testing','wait_prod','deploy_prod'];
   const envs=['DEV','UAT','PROD','UAT'];
   const yr=new Date().getFullYear();
   const counters={};
