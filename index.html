@@ -11,48 +11,48 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
 <style>
 :root{
-  --bg:#F7F8FC; --surface:#FFFFFF; --surface-2:#FAFAFD;
-  --border:#E7E9F2; --border-2:#D7DAEA;
-  --text:#33385C; --heading:#1F2348; --muted:#767B9C; --faint:#A0A4C0;
-  --side:#4E17D0; --side-ink:#FFFFFF; --side-muted:#C3B2F7; --side-hover:rgba(255,255,255,.12); --side-active:#6E3CF7; --side-line:rgba(255,255,255,.16);
-  --accent:#5516F2; --accent-ink:#FFFFFF; --accent-soft:#EFE9FE; --accent-lite:#C4B5FD;
+  --bg:#F6F8FC; --surface:#FFFFFF; --surface-2:#F9FBFE;
+  --border:#E5E9F3; --border-2:#D4DAEA;
+  --text:#334066; --heading:#1B2547; --muted:#6E7899; --faint:#9AA4C2;
+  --side:#1A3FB8; --side-ink:#FFFFFF; --side-muted:#A9C0F5; --side-hover:rgba(255,255,255,.12); --side-active:#3468EE; --side-line:rgba(255,255,255,.16);
+  --accent:#2563EB; --accent-ink:#FFFFFF; --accent-soft:#E9F0FD; --accent-lite:#A9C6FA;
   --bug:#D64545; --bug-bg:#FDECEC;
   --issue:#B7791F; --issue-bg:#FFF5E5;
-  --cr:#3B82A0; --cr-bg:#E8F3F7;
+  --cr:#0A7373; --cr-bg:#E2F2F2;
   --ok:#2E8B57; --ok-bg:#E8F5EE;
-  --neutral:#5C6280; --neutral-bg:#EFF0F7;
-  --scrim:rgba(31,35,72,.45);
-  --shadow:0 18px 44px rgba(31,35,72,.20);
+  --neutral:#5C6480; --neutral-bg:#EEF1F8;
+  --scrim:rgba(27,37,71,.45);
+  --shadow:0 18px 44px rgba(27,37,71,.20);
   --font:'Prompt',system-ui,-apple-system,'Segoe UI',Tahoma,sans-serif;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#14132B; --surface:#1C1B3A; --surface-2:#232247;
-    --border:#2F2E58; --border-2:#403E70;
-    --text:#DCDCF0; --heading:#F0EFFA; --muted:#A3A1C6; --faint:#7A78A4;
-    --side:#241F52; --side-muted:#A99BE8; --side-hover:rgba(255,255,255,.1); --side-active:#6E3CF7; --side-line:rgba(255,255,255,.14);
-    --accent:#8B5CFF; --accent-ink:#130B2E; --accent-soft:#2E2263; --accent-lite:#C4B5FD;
+    --bg:#0F172E; --surface:#16203F; --surface-2:#1D294B;
+    --border:#2A3760; --border-2:#3A4A7A;
+    --text:#DAE1F2; --heading:#EDF1FA; --muted:#9FADCE; --faint:#7785A8;
+    --side:#152449; --side-muted:#93A8DC; --side-hover:rgba(255,255,255,.1); --side-active:#3468EE; --side-line:rgba(255,255,255,.14);
+    --accent:#5B9BFF; --accent-ink:#0A1428; --accent-soft:#1B2E55; --accent-lite:#A9C6FA;
     --bug:#EE6F66; --bug-bg:#3D1E22;
     --issue:#DFA84B; --issue-bg:#3A2D14;
-    --cr:#5AB4CE; --cr-bg:#0E3238;
+    --cr:#34B3B3; --cr-bg:#0B3234;
     --ok:#3FB489; --ok-bg:#10352A;
-    --neutral:#A3A1C6; --neutral-bg:#2A2950;
-    --scrim:rgba(8,6,24,.6);
+    --neutral:#9FADCE; --neutral-bg:#22305A;
+    --scrim:rgba(5,10,24,.6);
     --shadow:0 18px 44px rgba(0,0,0,.6);
   }
 }
 :root[data-theme="dark"]{
-  --bg:#14132B; --surface:#1C1B3A; --surface-2:#232247;
-  --border:#2F2E58; --border-2:#403E70;
-  --text:#DCDCF0; --heading:#F0EFFA; --muted:#A3A1C6; --faint:#7A78A4;
-  --side:#241F52; --side-muted:#A99BE8; --side-hover:rgba(255,255,255,.1); --side-active:#6E3CF7; --side-line:rgba(255,255,255,.14);
-  --accent:#8B5CFF; --accent-ink:#130B2E; --accent-soft:#2E2263; --accent-lite:#C4B5FD;
+  --bg:#0F172E; --surface:#16203F; --surface-2:#1D294B;
+  --border:#2A3760; --border-2:#3A4A7A;
+  --text:#DAE1F2; --heading:#EDF1FA; --muted:#9FADCE; --faint:#7785A8;
+  --side:#152449; --side-muted:#93A8DC; --side-hover:rgba(255,255,255,.1); --side-active:#3468EE; --side-line:rgba(255,255,255,.14);
+  --accent:#5B9BFF; --accent-ink:#0A1428; --accent-soft:#1B2E55; --accent-lite:#A9C6FA;
   --bug:#EE6F66; --bug-bg:#3D1E22;
   --issue:#DFA84B; --issue-bg:#3A2D14;
-  --cr:#5AB4CE; --cr-bg:#0E3238;
+  --cr:#34B3B3; --cr-bg:#0B3234;
   --ok:#3FB489; --ok-bg:#10352A;
-  --neutral:#A3A1C6; --neutral-bg:#2A2950;
-  --scrim:rgba(8,6,24,.6);
+  --neutral:#9FADCE; --neutral-bg:#22305A;
+  --scrim:rgba(5,10,24,.6);
   --shadow:0 18px 44px rgba(0,0,0,.6);
 }
 *,*::before,*::after{box-sizing:border-box}
@@ -134,7 +134,7 @@ select:hover,input:hover,textarea:hover{border-color:var(--faint)}
 /* ---------- project overview ---------- */
 .project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .project-card{border:1px solid var(--border);border-radius:8px;padding:16px;cursor:pointer;background:var(--surface);text-align:left;font:inherit;color:inherit;width:100%}
-.project-card:hover{border-color:var(--faint);box-shadow:0 6px 16px rgba(85,22,242,.10)}
+.project-card:hover{border-color:var(--faint);box-shadow:0 6px 16px rgba(37,99,235,.12)}
 .project-name{font-weight:600;font-size:14px;color:var(--heading)}
 .project-code{font-size:11px;color:var(--muted)}
 .project-count{display:flex;gap:8px;margin-top:15px}
