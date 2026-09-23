@@ -11,6 +11,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
 <style>
 :root{
+  /* บอกเบราว์เซอร์ว่าหน้านี้คุมธีมเอง ไม่งั้น Chrome auto dark mode
+     จะบังคับกลับสีให้ ทำให้น้ำเงินเพี้ยนเป็นม่วง */
+  color-scheme:light;
   --bg:#F6F8FC; --surface:#FFFFFF; --surface-2:#F9FBFE;
   --border:#E5E9F3; --border-2:#D4DAEA;
   --text:#334066; --heading:#1B2547; --muted:#6E7899; --faint:#9AA4C2;
@@ -28,6 +31,7 @@
 /* ธีมสว่าง (น้ำเงิน-ขาว) เป็นค่าเริ่มต้นเสมอ ไม่ตามค่า dark mode ของเครื่อง
    ใครอยากได้ธีมมืดกดปุ่มสลับที่แถบบน แล้วระบบจะจำไว้ให้ */
 :root[data-theme="dark"]{
+  color-scheme:dark;
   --bg:#0F172E; --surface:#16203F; --surface-2:#1D294B;
   --border:#2A3760; --border-2:#3A4A7A;
   --text:#DAE1F2; --heading:#EDF1FA; --muted:#9FADCE; --faint:#7785A8;
@@ -162,7 +166,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 dialog{border:0;border-radius:12px;padding:0;width:min(650px,calc(100vw - 24px));max-height:calc(100vh - 40px);background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
 dialog[open]{display:flex;flex-direction:column}
 dialog::backdrop{background:rgba(31,35,72,.45)}
-@media (prefers-color-scheme:dark){dialog::backdrop{background:rgba(8,6,24,.62)}}
+:root[data-theme="dark"] dialog::backdrop{background:rgba(5,10,24,.62)}
 .modal-header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:20px 25px;border-bottom:1px solid var(--border);flex:none}
 .close{cursor:pointer;font-size:24px;color:var(--muted);background:none;border:0;line-height:1;padding:0 4px}
 .close:hover{color:var(--text)}
