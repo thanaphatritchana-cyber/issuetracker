@@ -185,6 +185,49 @@ dialog::backdrop{background:rgba(31,35,72,.45)}
 .toast.show{opacity:1}
 .tools{display:flex;gap:10px;flex-wrap:wrap}
 
+/* ---------- gantt ---------- */
+.gantt{overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.g-inner{min-width:760px}
+.g-row{display:grid;grid-template-columns:230px minmax(0,1fr);align-items:stretch;border-top:1px solid var(--border)}
+.g-row:first-child{border-top:0}
+.g-row.click{cursor:pointer}
+.g-row.click:hover{background:var(--surface-2)}
+.g-name{padding:10px 14px;font-size:13px;font-weight:300;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0}
+.g-name b{font-weight:500;font-size:13.5px;color:var(--heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.g-name span{font-size:11.5px;color:var(--muted)}
+.g-head{background:var(--surface-2);position:sticky;top:0;z-index:4}
+.g-head .g-name{font-size:12px;color:var(--muted);font-weight:500}
+.g-months{display:flex;height:100%}
+.g-months span{border-left:1px solid var(--border);font-size:11px;color:var(--muted);padding:10px 6px;white-space:nowrap;overflow:hidden;box-sizing:border-box}
+.g-months span:first-child{border-left:0}
+.g-track{position:relative;height:42px}
+.g-grid{position:absolute;inset:0;display:flex;pointer-events:none}
+.g-grid i{border-left:1px solid var(--border);box-sizing:border-box}
+.g-grid i:first-child{border-left:0}
+.g-bar{position:absolute;top:11px;height:20px;border-radius:5px;background:var(--accent-soft);border:1px solid var(--accent);overflow:hidden;min-width:3px}
+.g-bar.late{background:var(--bug-bg);border-color:var(--bug)}
+.g-bar.done{background:var(--ok-bg);border-color:var(--ok)}
+.g-fill{height:100%;background:var(--accent);opacity:.85}
+.g-bar.late .g-fill{background:var(--bug)}
+.g-bar.done .g-fill{background:var(--ok)}
+.g-lab{position:absolute;top:13px;font-size:11px;color:var(--muted);white-space:nowrap;padding-left:7px}
+.g-ms{position:absolute;top:0;height:100%;display:flex;align-items:center;transform:translateX(-50%);z-index:2}
+.g-ms i{width:14px;height:14px;background:var(--issue);transform:rotate(45deg);display:block;box-shadow:0 0 0 2px var(--surface)}
+.g-ms.done i{background:var(--ok)}
+.g-today{position:absolute;top:0;bottom:0;width:2px;background:var(--bug);z-index:3;pointer-events:none}
+.g-today::after{content:"วันนี้";position:absolute;top:2px;left:4px;font-size:10px;color:var(--bug);white-space:nowrap}
+.g-head .g-today::after{top:2px}
+.plan-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px}
+.plan-sum div{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.plan-sum span{font-size:12px;color:var(--muted);display:block}
+.plan-sum b{display:block;font-size:22px;font-weight:600;color:var(--heading);margin-top:6px;line-height:1.2}
+.plan-sum b.warn{color:var(--bug)}
+.pbar{height:7px;border-radius:4px;background:var(--neutral-bg);overflow:hidden;margin-top:9px}
+.pbar i{display:block;height:100%;background:var(--accent)}
+.g-legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--muted);font-weight:300;margin-top:12px}
+.g-legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:6px}
+.g-legend i.ms{transform:rotate(45deg);width:10px;height:10px;border-radius:0;background:var(--issue)}
+
 /* ---------- auth screen ---------- */
 .auth-screen{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
 /* จำเป็น: display:flex บรรทัดบนมี specificity เท่ากับ [hidden]{display:none}
@@ -290,8 +333,8 @@ const SUPA_KEY='sb_publishable_4HzEJPptmFOAdK3f0pDbug_Gq2ixhb4';
 
 /* ============ constants ============ */
 const LS='issue-tracker-v1';
-const COLS=['projects','issues','members'];
-const S={projects:[],issues:[],members:[]};
+const COLS=['projects','issues','members','tasks'];
+const S={projects:[],issues:[],members:[],tasks:[]};
 
 const TYPES={
   Bug:{label:'Bug',sub:'Defect / Error',icon:'●',pre:'BUG'},
@@ -308,11 +351,12 @@ const ROLES={ba:'BA',dev:'Developer',tester:'Tester',support:'Support',pm:'PM'};
 const ROUTES={
   '/dashboard':{title:'Issue Dashboard',view:()=>vDashboard()},
   '/issues':{title:'All Issues',view:()=>vIssues()},
+  '/plan':{title:'Project Plan',view:()=>vPlan()},
   '/projects':{title:'Projects',view:()=>vProjects()},
   '/users':{title:'Users',view:()=>vUsers()},
   '/settings':{title:'Settings',view:()=>vSettings()}
 };
-const UI={year:'all',proj:'all',type:'all',q:'',status:'all',pri:'all'};
+const UI={year:'all',proj:'all',type:'all',q:'',status:'all',pri:'all',planProj:'all'};
 let DB=null,loaded=true;
 let SB=null,SBUSER=null;   /* client และผู้ใช้ที่ login อยู่ เมื่อใช้ Supabase */
 
@@ -320,6 +364,7 @@ let SB=null,SBUSER=null;   /* client และผู้ใช้ที่ login 
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const num=v=>{const n=parseFloat(v);return isNaN(n)?0:n};
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const fmtD=v=>{if(!v)return '—';const x=new Date(v+'T00:00:00');if(isNaN(x))return v;
   return String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0')+'/'+x.getFullYear()};
@@ -404,7 +449,7 @@ async function sbLoad(col){
 async function sbLoadAll(){await Promise.all(COLS.map(sbLoad));loaded=true;render()}
 
 /* ============ routing ============ */
-const ICON={dash:'▦',issues:'☷',create:'＋',proj:'▣',users:'◉',settings:'⚙'};
+const ICON={dash:'▦',issues:'☷',plan:'▤',create:'＋',proj:'▣',users:'◉',settings:'⚙'};
 function route(){const r=(location.hash||'#/dashboard').slice(1);return ROUTES[r]?r:'/dashboard'}
 function renderNav(r){
   const a=(h,t,ic)=>`<a href="#${h}" class="menu-item${r===h?' active':''}"><i>${ic}</i>${t}</a>`;
@@ -412,6 +457,7 @@ function renderNav(r){
     `<div class="menu-title">MAIN</div>`+
     a('/dashboard','Dashboard',ICON.dash)+
     a('/issues','All Issues',ICON.issues)+
+    a('/plan','Project Plan',ICON.plan)+
     `<button type="button" class="menu-item" onclick="editIssue()"><i>${ICON.create}</i>Create Issue</button>`+
     `<div class="menu-title">MANAGEMENT</div>`+
     a('/projects','Projects',ICON.proj)+
@@ -626,6 +672,193 @@ function editIssue(id){
     const sync=()=>{$('#iCode').value=nextCode($('#iType').value)};
     $('#iType').onchange=sync;
   }
+}
+
+/* ============ Project Plan (Gantt) ============
+   งานในแผนเก็บแยกจาก issues โดยตั้งใจ เพราะแผนงานคือเฟสที่มีวันเริ่ม-วันจบ-%คืบหน้า
+   ส่วน issue มีแค่กำหนดเสร็จ วาดเป็นแท่งเวลาไม่ได้ */
+const DAY=86400000;
+const dparse=v=>{if(!v)return null;const d=new Date(v+'T00:00:00');return isNaN(d)?null:d};
+const daysBetween=(a,b)=>Math.round((b-a)/DAY);
+const todayD=()=>dparse(today());
+const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const isMs=t=>!!t.milestone;
+const tStart=t=>dparse(t.start);
+const tEnd=t=>dparse(isMs(t)?t.start:(t.end||t.start));
+const tValid=t=>{const a=tStart(t),b=tEnd(t);return !!(a&&b&&b>=a)};
+const projTasks=pid=>S.tasks.filter(t=>t.projectId===pid&&tValid(t))
+  .sort((a,b)=>tStart(a)-tStart(b)||(isMs(a)?1:0)-(isMs(b)?1:0)||String(a.name||'').localeCompare(String(b.name||''),'th'));
+
+/* ช่วงเวลาของกราฟ ขยายให้เต็มเดือนหัวท้าย เพื่อให้หัวตารางเดือนอ่านง่าย */
+function planRange(items){
+  const ds=[];
+  items.forEach(t=>{const a=tStart(t),b=tEnd(t);if(a&&b){ds.push(+a);ds.push(+b)}});
+  if(!ds.length)return null;
+  const lo=new Date(Math.min.apply(null,ds)),hi=new Date(Math.max.apply(null,ds));
+  const min=new Date(lo.getFullYear(),lo.getMonth(),1);
+  const max=new Date(hi.getFullYear(),hi.getMonth()+1,0);
+  return {min,max,days:daysBetween(min,max)+1};
+}
+function monthCells(r){
+  const out=[];
+  let cur=new Date(r.min.getFullYear(),r.min.getMonth(),1);
+  while(cur<=r.max){
+    const mEnd=new Date(cur.getFullYear(),cur.getMonth()+1,0);
+    const to=mEnd>r.max?r.max:mEnd;
+    const from=cur<r.min?r.min:cur;
+    out.push({label:cur.toLocaleDateString('th-TH',{month:'short',year:'2-digit'}),
+      pct:(daysBetween(from,to)+1)/r.days*100});
+    cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+  }
+  return out;
+}
+const pctAt=(r,d)=>daysBetween(r.min,d)/r.days*100;
+const gridHTML=cells=>`<div class="g-grid">${cells.map(c=>`<i style="width:${c.pct}%"></i>`).join('')}</div>`;
+function todayHTML(r){
+  const t=todayD();
+  if(t<r.min||t>r.max)return '';
+  return `<div class="g-today" style="left:${pctAt(r,t)}%"></div>`;
+}
+/* คืบหน้ารวม ถ่วงน้ำหนักด้วยจำนวนวันของแต่ละงาน ไม่นับ milestone ที่ไม่กินเวลา */
+function overallProgress(items){
+  let tot=0,acc=0;
+  items.filter(t=>!isMs(t)).forEach(t=>{
+    const d=daysBetween(tStart(t),tEnd(t))+1;
+    tot+=d;acc+=d*Math.min(100,Math.max(0,num(t.progress)))/100;
+  });
+  return tot?Math.round(acc/tot*100):0;
+}
+const taskLate=t=>!isMs(t)&&tEnd(t)<todayD()&&num(t.progress)<100;
+const msLate=t=>isMs(t)&&tStart(t)<todayD()&&num(t.progress)<100;
+const anyLate=ts=>ts.some(t=>taskLate(t)||msLate(t));
+
+function barHTML(r,t){
+  const a=tStart(t),b=tEnd(t);
+  const left=pctAt(r,a);
+  const done=num(t.progress)>=100;
+  if(isMs(t)){
+    return `<div class="g-ms${done?' done':''}" style="left:${left}%" title="${esc(t.name)} · ${fmtD(t.start)}"><i></i></div>
+      <div class="g-lab" style="left:${left}%">${esc(t.name)}</div>`;
+  }
+  const w=(daysBetween(a,b)+1)/r.days*100;
+  const cls=done?'done':(taskLate(t)?'late':'');
+  const pg=Math.min(100,Math.max(0,num(t.progress)));
+  return `<div class="g-bar ${cls}" style="left:${left}%;width:${w}%" title="${esc(t.name)} · ${fmtD(t.start)} – ${fmtD(t.end||t.start)} · ${pg}%">
+      <div class="g-fill" style="width:${pg}%"></div></div>
+    <div class="g-lab" style="left:${left+w}%">${pg}%</div>`;
+}
+const monthHead=(label,cells,r)=>`<div class="g-row g-head"><div class="g-name">${esc(label)}</div><div class="g-track" style="height:auto"><div class="g-months">${cells.map(c=>`<span style="width:${c.pct}%">${esc(c.label)}</span>`).join('')}</div>${todayHTML(r)}</div></div>`;
+const ganttLegend=extra=>`<div class="g-legend"><span><i style="background:var(--accent)"></i>ตามแผน</span><span><i style="background:var(--bug)"></i>ล่าช้า</span><span><i style="background:var(--ok)"></i>เสร็จแล้ว</span>${extra||''}</div>`;
+
+function vPlan(){
+  let h=`<div class="filter-bar">
+    <select id="planProj" aria-label="เลือก Project" onchange="UI.planProj=this.value;render()">${projOpts(UI.planProj,'ทุก Project (ภาพรวม)')}</select>
+    <div style="flex:1"></div>
+    <button class="btn btn-primary" onclick="editTask()">+ เพิ่มงานในแผน</button>
+  </div>`;
+
+  if(!S.projects.length)return h+emptyState('ยังไม่มี Project','สร้าง Project ก่อน แล้วจึงวางแผนงานได้','<a class="btn btn-primary" href="#/projects">ไปที่ Projects</a>');
+
+  /* ภาพรวม: หนึ่งแถวต่อหนึ่งโครงการ ย่อจากงานทั้งหมดในโครงการนั้น */
+  if(UI.planProj==='all'){
+    const rows=sortedProjs().map(p=>{
+      const ts=projTasks(p.id);
+      if(!ts.length)return null;
+      return {p,ts,start:tStart(ts[0]),end:new Date(Math.max.apply(null,ts.map(t=>+tEnd(t)))),prog:overallProgress(ts)};
+    }).filter(Boolean);
+    if(!rows.length)return h+emptyState('ยังไม่มีแผนงาน','เลือก Project แล้วเพิ่มงานเข้าไป ระบบจะวาด Gantt ให้อัตโนมัติ','<button class="btn btn-primary" onclick="editTask()">+ เพิ่มงานในแผน</button>');
+    const all=[];rows.forEach(x=>x.ts.forEach(t=>all.push(t)));
+    const r=planRange(all),cells=monthCells(r);
+    const lateN=rows.filter(x=>anyLate(x.ts)).length;
+    h+=`<div class="plan-sum">
+      <div><span>โครงการที่มีแผน</span><b>${rows.length}</b></div>
+      <div><span>ความคืบหน้าเฉลี่ย</span><b>${Math.round(rows.reduce((s,x)=>s+x.prog,0)/rows.length)}%</b></div>
+      <div><span>โครงการที่มีงานล่าช้า</span><b class="${lateN?'warn':''}">${lateN}</b></div>
+    </div>`;
+    h+=`<div class="card" style="padding:0;overflow:hidden"><div class="gantt"><div class="g-inner">`+monthHead('Project',cells,r);
+    for(const x of rows){
+      const left=pctAt(r,x.start),w=(daysBetween(x.start,x.end)+1)/r.days*100;
+      const cls=anyLate(x.ts)?'late':(x.prog>=100?'done':'');
+      h+=`<div class="g-row click" onclick="UI.planProj='${x.p.id}';render()">
+        <div class="g-name"><b>${esc(x.p.name)}</b><span>${esc(x.p.code||'—')} · ${x.ts.length} งาน</span></div>
+        <div class="g-track">${gridHTML(cells)}${todayHTML(r)}
+          <div class="g-bar ${cls}" style="left:${left}%;width:${w}%" title="${esc(x.p.name)} · ${x.prog}%"><div class="g-fill" style="width:${x.prog}%"></div></div>
+          <div class="g-lab" style="left:${left+w}%">${x.prog}%</div></div></div>`;
+    }
+    return h+`</div></div></div>`+ganttLegend('<span>คลิกแถวเพื่อดูแผนรายโครงการ</span>');
+  }
+
+  /* รายโครงการ */
+  const p=proj(UI.planProj);
+  if(!p)return h+emptyState('ไม่พบ Project นี้','อาจถูกลบไปแล้ว เลือกใหม่จากรายการด้านบน');
+  const ts=projTasks(p.id);
+  const bad=S.tasks.filter(t=>t.projectId===p.id&&!tValid(t)).length;
+  if(!ts.length)return h+emptyState('ยังไม่มีแผนงานใน '+p.name,
+    bad?`มี ${bad} รายการที่วันที่ไม่ครบหรือวันจบมาก่อนวันเริ่ม จึงยังวาดไม่ได้`
+       :'เพิ่มงานแรกเข้าไป เช่น วิเคราะห์ความต้องการ / ออกแบบ / พัฒนา / UAT / Go-live',
+    '<button class="btn btn-primary" onclick="editTask()">+ เพิ่มงานในแผน</button>');
+
+  const r=planRange(ts),cells=monthCells(r);
+  const end=new Date(Math.max.apply(null,ts.map(t=>+tEnd(t))));
+  const prog=overallProgress(ts);
+  const lateN=ts.filter(t=>taskLate(t)||msLate(t)).length;
+  const remain=daysBetween(todayD(),end);
+  const nextMs=ts.filter(t=>isMs(t)&&tStart(t)>=todayD())[0];
+
+  h+=`<div class="plan-sum">
+    <div><span>ช่วงเวลาโครงการ</span><b style="font-size:15px">${fmtD(ts[0].start)}<br>ถึง ${fmtD(ymd(end))}</b></div>
+    <div><span>ความคืบหน้ารวม</span><b>${prog}%</b><div class="pbar"><i style="width:${prog}%"></i></div></div>
+    <div><span>${remain>=0?'เหลืออีก':'เลยกำหนดมาแล้ว'}</span><b class="${remain<0?'warn':''}">${Math.abs(remain)} วัน</b></div>
+    <div><span>งานล่าช้า</span><b class="${lateN?'warn':''}">${lateN}</b></div>
+    <div><span>หมุดถัดไป</span><b style="font-size:14px">${nextMs?esc(nextMs.name)+'<br><span style="font-size:12px;font-weight:400;color:var(--muted)">'+fmtD(nextMs.start)+'</span>':'—'}</b></div>
+  </div>`;
+
+  h+=`<div class="card" style="padding:0;overflow:hidden"><div class="gantt"><div class="g-inner">`+monthHead('งาน',cells,r);
+  for(const t of ts){
+    h+=`<div class="g-row click" onclick="editTask('${t.id}')">
+      <div class="g-name"><b>${isMs(t)?'◆ ':''}${esc(t.name)}</b><span>${esc(t.assigneeId?mName(t.assigneeId):'ยังไม่มอบหมาย')} · ${fmtD(t.start)}${isMs(t)?'':' – '+fmtD(t.end||t.start)}</span></div>
+      <div class="g-track">${gridHTML(cells)}${todayHTML(r)}${barHTML(r,t)}</div></div>`;
+  }
+  h+=`</div></div></div>`+ganttLegend('<span><i class="ms"></i>Milestone</span><span>คลิกแถวเพื่อแก้ไข</span>');
+  if(bad)h+=`<div class="rowcount" style="margin-top:10px">ซ่อน ${bad} รายการที่วันที่ไม่ครบหรือวันจบมาก่อนวันเริ่ม</div>`;
+  return h;
+}
+
+function editTask(id){
+  if(!S.projects.length){toast('สร้าง Project ก่อน แล้วจึงวางแผนงาน');location.hash='#/projects';return}
+  const cur=id?S.tasks.find(x=>x.id===id):null;
+  if(id&&!cur){toast('ไม่พบงานนี้แล้ว');return}
+  const t=cur?{...cur}:{projectId:(UI.planProj!=='all'&&UI.planProj)||sortedProjs()[0].id,
+    start:today(),end:today(),progress:0,milestone:false};
+  modal(cur?'แก้ไขงานในแผน':'เพิ่มงานในแผน',`<div class="form-grid">
+    <div class="form-group"><label>Project</label><select data-f="projectId">${projOpts(t.projectId)}</select></div>
+    <div class="form-group"><label>ประเภท</label><select data-f="kind" id="tKind">${opts([{v:'task',t:'งาน (แท่งเวลา)'},{v:'ms',t:'Milestone (หมุดสำคัญ)'}],isMs(t)?'ms':'task')}</select></div>
+    <div class="form-group full"><label>ชื่องาน</label><input type="text" data-f="name" value="${esc(t.name)}" placeholder="เช่น วิเคราะห์ความต้องการ / UAT / Go-live"></div>
+    <div class="form-group"><label>วันเริ่ม</label><input type="date" data-f="start" value="${esc(t.start)}"></div>
+    <div class="form-group" id="tEndBox"><label>วันจบ</label><input type="date" data-f="end" value="${esc(t.end)}"></div>
+    <div class="form-group"><label>ความคืบหน้า (%)</label><input type="number" min="0" max="100" step="5" data-f="progress" value="${esc(num(t.progress))}"></div>
+    <div class="form-group"><label>ผู้รับผิดชอบ</label><select data-f="assigneeId">${memberOpts(t.assigneeId,'— ยังไม่มอบหมาย —')}</select></div>
+    <div class="form-group full"><span class="hint">Milestone ใช้วันเดียว ระบบตั้งวันจบให้เท่ากับวันเริ่มเอง</span></div>
+  </div>`,
+  async f=>{
+    if(!f.name.trim()){toast('กรอกชื่องานก่อนบันทึก');return false}
+    if(!f.start){toast('เลือกวันเริ่มก่อนบันทึก');return false}
+    const ms=f.kind==='ms';
+    const end=ms?f.start:(f.end||f.start);
+    if(!ms&&end<f.start){toast('วันจบต้องไม่มาก่อนวันเริ่ม');return false}
+    const n={...t,...f,id:t.id||uid(),name:f.name.trim(),end,milestone:ms,
+      progress:Math.min(100,Math.max(0,num(f.progress)))};
+    delete n.kind;
+    await put('tasks',n);
+    UI.planProj=n.projectId;
+    toast('บันทึกแผนงานแล้ว');
+  },
+  cur?async()=>{
+    if(!await confirmBox('ลบ "'+(t.name||'งานนี้')+'"?','ลบแล้วกู้คืนไม่ได้'))return false;
+    await del('tasks',id);toast('ลบงานแล้ว');
+  }:null,'บันทึก');
+  const sync=()=>{$('#tEndBox').style.display=$('#tKind').value==='ms'?'none':''};
+  $('#tKind').onchange=sync;sync();
 }
 
 /* ============ Projects ============ */
