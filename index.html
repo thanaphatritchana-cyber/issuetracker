@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Issue Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
+<style>
+:root{
+  --bg:#F7F8FC; --surface:#FFFFFF; --surface-2:#FAFAFD;
+  --border:#E7E9F2; --border-2:#D7DAEA;
+  --text:#33385C; --heading:#1F2348; --muted:#767B9C; --faint:#A0A4C0;
+  --side:#4E17D0; --side-ink:#FFFFFF; --side-muted:#C3B2F7; --side-hover:rgba(255,255,255,.12); --side-active:#6E3CF7; --side-line:rgba(255,255,255,.16);
+  --accent:#5516F2; --accent-ink:#FFFFFF; --accent-soft:#EFE9FE; --accent-lite:#C4B5FD;
+  --bug:#D64545; --bug-bg:#FDECEC;
+  --issue:#B7791F; --issue-bg:#FFF5E5;
+  --cr:#3B82A0; --cr-bg:#E8F3F7;
+  --ok:#2E8B57; --ok-bg:#E8F5EE;
+  --neutral:#5C6280; --neutral-bg:#EFF0F7;
+  --scrim:rgba(31,35,72,.45);
+  --shadow:0 18px 44px rgba(31,35,72,.20);
+  --font:'Prompt',system-ui,-apple-system,'Segoe UI',Tahoma,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#14132B; --surface:#1C1B3A; --surface-2:#232247;
+    --border:#2F2E58; --border-2:#403E70;
+    --text:#DCDCF0; --heading:#F0EFFA; --muted:#A3A1C6; --faint:#7A78A4;
+    --side:#241F52; --side-muted:#A99BE8; --side-hover:rgba(255,255,255,.1); --side-active:#6E3CF7; --side-line:rgba(255,255,255,.14);
+    --accent:#8B5CFF; --accent-ink:#130B2E; --accent-soft:#2E2263; --accent-lite:#C4B5FD;
+    --bug:#EE6F66; --bug-bg:#3D1E22;
+    --issue:#DFA84B; --issue-bg:#3A2D14;
+    --cr:#5AB4CE; --cr-bg:#0E3238;
+    --ok:#3FB489; --ok-bg:#10352A;
+    --neutral:#A3A1C6; --neutral-bg:#2A2950;
+    --scrim:rgba(8,6,24,.6);
+    --shadow:0 18px 44px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14132B; --surface:#1C1B3A; --surface-2:#232247;
+  --border:#2F2E58; --border-2:#403E70;
+  --text:#DCDCF0; --heading:#F0EFFA; --muted:#A3A1C6; --faint:#7A78A4;
+  --side:#241F52; --side-muted:#A99BE8; --side-hover:rgba(255,255,255,.1); --side-active:#6E3CF7; --side-line:rgba(255,255,255,.14);
+  --accent:#8B5CFF; --accent-ink:#130B2E; --accent-soft:#2E2263; --accent-lite:#C4B5FD;
+  --bug:#EE6F66; --bug-bg:#3D1E22;
+  --issue:#DFA84B; --issue-bg:#3A2D14;
+  --cr:#5AB4CE; --cr-bg:#0E3238;
+  --ok:#3FB489; --ok-bg:#10352A;
+  --neutral:#A3A1C6; --neutral-bg:#2A2950;
+  --scrim:rgba(8,6,24,.6);
+  --shadow:0 18px 44px rgba(0,0,0,.6);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;font-weight:400;line-height:1.6;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{color:var(--heading)}
+
+/* ---------- sidebar ---------- */
+.sidebar{position:fixed;left:0;top:0;width:240px;height:100vh;background:var(--side);color:var(--side-ink);padding:25px 16px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;z-index:40}
+.logo{font-size:20px;font-weight:600;padding:0 12px 26px;letter-spacing:-.01em}
+.logo span{color:var(--accent-lite)}
+.menu-title{font-size:11px;color:var(--side-muted);margin:18px 12px 8px;letter-spacing:.06em}
+.menu-item{padding:11px 14px;border-radius:8px;margin-bottom:4px;cursor:pointer;color:#D9E2EC;font-size:14px;text-decoration:none;display:flex;align-items:center;gap:4px;border:0;background:none;width:100%;text-align:left;font-weight:400}
+.menu-item:hover{background:var(--side-hover);color:#fff}
+.menu-item.active{background:var(--side-active);color:#fff;font-weight:500}
+.menu-item i{width:25px;display:inline-block;font-style:normal;flex:none}
+.store{margin-top:auto;font-size:12px;color:var(--side-muted);padding:14px 12px 0;border-top:1px solid var(--side-line);display:flex;gap:8px;align-items:flex-start;line-height:1.45}
+.store i{width:7px;height:7px;border-radius:50%;background:var(--side-muted);margin-top:6px;flex:none}
+.store.live i{background:#4ADE80}
+.linkout{background:none;border:0;padding:0;margin-top:6px;color:var(--accent-lite);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.linkout:hover{color:#fff}
+
+/* ---------- shell ---------- */
+.main{margin-left:240px;min-height:100vh}
+.topbar{position:sticky;top:0;z-index:20;height:72px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 30px}
+.page-title{font-size:20px;font-weight:600;color:var(--heading);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user{display:flex;align-items:center;gap:12px;font-size:14px;flex:none}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-weight:500;flex:none}
+.menu-btn{display:none;border:1px solid var(--border-2);background:var(--surface);border-radius:8px;width:40px;height:40px;padding:0;cursor:pointer;flex:none;align-items:center;justify-content:center}
+.menu-btn svg{width:20px;height:20px}
+.content{padding:28px;max-width:1560px}
+.scrim{display:none}
+
+/* ---------- controls ---------- */
+select,input[type=text],input[type=date],input[type=search],input[type=number]{height:40px;border:1px solid var(--border-2);border-radius:7px;padding:0 12px;font-family:var(--font);font-size:14px;color:var(--text);background:var(--surface);min-width:0;font-weight:300}
+input[type=file]{font-size:13px;font-weight:300;padding:9px 12px;border:1px solid var(--border-2);border-radius:7px;background:var(--surface);width:100%}
+textarea{min-height:100px;border:1px solid var(--border-2);border-radius:7px;padding:10px 12px;font-family:var(--font);font-size:14px;background:var(--surface);color:var(--text);resize:vertical;width:100%;font-weight:300}
+select:hover,input:hover,textarea:hover{border-color:var(--faint)}
+.btn{height:40px;border:1px solid var(--border-2);background:var(--surface);color:var(--text);border-radius:7px;padding:0 18px;font-family:var(--font);font-size:14px;cursor:pointer;font-weight:500;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn-primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn-primary:hover{filter:brightness(1.1);color:var(--accent-ink)}
+.btn-danger{color:var(--bug);border-color:var(--border-2)}
+.btn-danger:hover{border-color:var(--bug);color:var(--bug)}
+.btn-sm{height:32px;padding:0 12px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+
+.filter-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
+.filter-bar .search{flex:1;min-width:200px}
+
+/* ---------- KPI ---------- */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px}
+.kpi-header{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.kpi-title{font-size:13px;color:var(--muted)}
+.kpi-icon{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;font-style:normal}
+.icon-total{background:var(--accent-soft);color:var(--accent)}
+.icon-bug{background:var(--bug-bg);color:var(--bug)}
+.icon-issue{background:var(--issue-bg);color:var(--issue)}
+.icon-cr{background:var(--cr-bg);color:var(--cr)}
+.kpi-number{font-size:28px;font-weight:600;margin-top:10px;line-height:1.15;color:var(--heading);font-variant-numeric:tabular-nums}
+.kpi-sub{font-size:11px;color:var(--muted)}
+
+/* ---------- cards ---------- */
+.dashboard-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:20px;margin-bottom:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px}
+.card:last-child{margin-bottom:0}
+.dashboard-grid .card{margin-bottom:0}
+.card-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.card-title{font-size:16px;font-weight:600;color:var(--heading)}
+.card-sub{font-size:12px;color:var(--muted);font-weight:300}
+.chartbox{position:relative;width:100%;height:260px}
+.chartbox canvas{display:block;width:100%!important;height:100%!important}
+.chart-empty,.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:100%;min-height:120px;font-size:13px;color:var(--muted);font-weight:300;text-align:center;padding:24px}
+.empty b{color:var(--heading);font-size:16px;font-weight:500}
+
+/* ---------- project overview ---------- */
+.project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.project-card{border:1px solid var(--border);border-radius:8px;padding:16px;cursor:pointer;background:var(--surface);text-align:left;font:inherit;color:inherit;width:100%}
+.project-card:hover{border-color:var(--faint);box-shadow:0 6px 16px rgba(85,22,242,.10)}
+.project-name{font-weight:600;font-size:14px;color:var(--heading)}
+.project-code{font-size:11px;color:var(--muted)}
+.project-count{display:flex;gap:8px;margin-top:15px}
+.count-box{flex:1;padding:8px;border-radius:6px;text-align:center;font-size:12px}
+.count-box strong{display:block;font-size:18px;font-weight:600}
+.bug-box{background:var(--bug-bg);color:var(--bug)}
+.issue-box{background:var(--issue-bg);color:var(--issue)}
+.cr-box{background:var(--cr-bg);color:var(--cr)}
+
+/* ---------- table ---------- */
+.table-wrapper{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{background:var(--surface-2);text-align:left;font-size:12px;color:var(--muted);padding:13px;border-bottom:1px solid var(--border);white-space:nowrap;font-weight:500}
+td{padding:13px;border-bottom:1px solid var(--border);font-size:13px;font-weight:300;vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+tbody tr.click{cursor:pointer}
+tbody tr.click:hover td{background:var(--surface-2)}
+td.id{font-weight:500;white-space:nowrap;color:var(--heading);font-variant-numeric:tabular-nums}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.sub-t{display:block;font-size:12px;color:var(--muted)}
+.badge{padding:4px 9px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap;display:inline-block}
+.badge-Bug{background:var(--bug-bg);color:var(--bug)}
+.badge-Issue{background:var(--issue-bg);color:var(--issue)}
+.badge-CR{background:var(--cr-bg);color:var(--cr)}
+.status{font-size:11px;padding:4px 9px;border-radius:20px;white-space:nowrap;display:inline-block}
+.status-open{background:var(--neutral-bg);color:var(--neutral)}
+.status-progress{background:var(--accent-soft);color:var(--accent)}
+.status-resolved{background:var(--ok-bg);color:var(--ok)}
+.status-closed{background:var(--neutral-bg);color:var(--faint)}
+.priority-critical,.priority-high{color:var(--bug);font-weight:600}
+.priority-medium{color:var(--issue);font-weight:600}
+.priority-low{color:var(--ok);font-weight:600}
+.late{color:var(--bug);font-weight:500}
+.rowcount{font-size:12px;color:var(--muted);font-weight:300;margin-bottom:10px}
+
+/* ---------- modal ---------- */
+dialog{border:0;border-radius:12px;padding:0;width:min(650px,calc(100vw - 24px));max-height:calc(100vh - 40px);background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+dialog[open]{display:flex;flex-direction:column}
+dialog::backdrop{background:rgba(31,35,72,.45)}
+@media (prefers-color-scheme:dark){dialog::backdrop{background:rgba(8,6,24,.62)}}
+.modal-header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:20px 25px;border-bottom:1px solid var(--border);flex:none}
+.close{cursor:pointer;font-size:24px;color:var(--muted);background:none;border:0;line-height:1;padding:0 4px}
+.close:hover{color:var(--text)}
+.modal-body{padding:22px 25px;overflow-y:auto;flex:1;min-height:0}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.form-group{display:flex;flex-direction:column;gap:6px;min-width:0}
+.form-group.full{grid-column:1/-1}
+.form-group label{font-size:12px;color:var(--muted)}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;padding:16px 25px;border-top:1px solid var(--border);flex:none;flex-wrap:wrap}
+.modal-footer .left{margin-right:auto}
+.hint{font-size:12px;color:var(--muted);font-weight:300}
+
+/* ---------- misc ---------- */
+.mlist{list-style:none;margin:0;padding:0}
+.mlist li{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--border);font-weight:300}
+.mlist li:first-child{border-top:0}
+.mlist li span.nm{flex:1;min-width:0}
+.tag{font-size:11px;padding:3px 9px;border-radius:20px;background:var(--neutral-bg);color:var(--neutral);white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--heading);color:var(--surface);padding:10px 18px;border-radius:7px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:60;max-width:90vw}
+.toast.show{opacity:1}
+.tools{display:flex;gap:10px;flex-wrap:wrap}
+
+/* ---------- auth screen ---------- */
+.auth-screen{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-card{width:min(400px,100%);background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px}
+.auth-logo{font-size:22px;font-weight:600;color:var(--accent);letter-spacing:-.01em;text-align:center;margin-bottom:4px}
+.auth-logo span{color:var(--heading)}
+.auth-card label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
+.auth-card input{height:42px}
+.auth-card .btn{height:42px;margin-top:6px}
+.auth-msg{font-size:13px;font-weight:300;min-height:20px;text-align:center}
+.auth-msg.err{color:var(--bug)}
+.auth-foot{font-size:12px;color:var(--muted);font-weight:300;text-align:center;line-height:1.5}
+body.locked{overflow:hidden}
+
+/* ---------- responsive ---------- */
+@media (max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.dashboard-grid{grid-template-columns:1fr}}
+@media (max-width:1000px){
+  .sidebar{transform:translateX(-105%);transition:transform .22s ease;width:min(280px,84vw);padding-top:calc(25px + env(safe-area-inset-top,0px))}
+  body.nav-open .sidebar{transform:none;box-shadow:var(--shadow)}
+  .scrim{display:block;position:fixed;inset:0;z-index:30;background:var(--scrim);opacity:0;pointer-events:none;transition:opacity .2s}
+  body.nav-open .scrim{opacity:1;pointer-events:auto}
+  .menu-btn{display:inline-flex}
+  .main{margin-left:0}
+  .topbar{padding:0 16px;height:64px}
+  .content{padding:18px 16px 56px}
+}
+@media (max-width:640px){
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .kpi{padding:14px}
+  .kpi-number{font-size:24px}
+  .kpi-icon{width:32px;height:32px;font-size:15px}
+  .page-title{font-size:17px}
+  .user span{display:none}
+  .filter-bar>*{flex:1 1 100%}
+  .form-grid{grid-template-columns:1fr}
+  select,input[type=text],input[type=date],input[type=search],input[type=number],textarea{font-size:16px}
+  dialog{width:100%;max-width:100%;height:100%;max-height:100%;border-radius:0;margin:0}
+  .modal-header{padding-top:calc(20px + env(safe-area-inset-top,0px))}
+  .modal-footer{padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+  .modal-footer .btn{flex:1}
+  .modal-footer .left{flex:0 0 auto}
+  /* table -> cards */
+  .rt thead{display:none}
+  .rt,.rt tbody,.rt tr,.rt td{display:block}
+  .rt tr{padding:12px 0;border-bottom:1px solid var(--border)}
+  .rt tr:last-child{border-bottom:0}
+  .rt td{border:0;padding:3px 0;text-align:right}
+  .rt td::before{content:attr(data-label);float:left;margin-right:14px;color:var(--muted);font-size:12px}
+  .rt td.lead{text-align:left;font-weight:400;padding-bottom:6px}
+  .rt td.lead::before{content:none}
+  tbody tr.click:hover td{background:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar" aria-label="เมนูหลัก">
+  <div class="logo">ISSUE<span>TRACKER</span></div>
+  <nav id="nav"></nav>
+  <div class="store" id="store"><i></i><span>บันทึกในเบราว์เซอร์นี้</span></div>
+</aside>
+<div class="scrim" id="scrim"></div>
+
+<main class="main">
+  <header class="topbar">
+    <button class="menu-btn" id="menuBtn" aria-label="เปิดเมนู" aria-controls="sidebar" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <div class="page-title" id="pageTitle">Issue Dashboard</div>
+    <div class="user"><span id="userName">ผู้ใช้งาน</span><div class="avatar" id="userAvatar">U</div></div>
+  </header>
+  <section class="content" id="content"></section>
+</main>
+
+<div class="auth-screen" id="authScreen" hidden>
+  <form class="auth-card" id="authForm" autocomplete="on">
+    <div class="auth-logo">ISSUE<span>TRACKER</span></div>
+    <label>อีเมล<input type="email" id="authEmail" required autocomplete="username"></label>
+    <label>รหัสผ่าน<input type="password" id="authPass" required autocomplete="current-password"></label>
+    <button class="btn btn-primary" type="submit" id="authBtn">เข้าสู่ระบบ</button>
+    <div class="auth-msg" id="authMsg" role="status"></div>
+    <div class="auth-foot">ต้องเข้าสู่ระบบก่อนจึงจะดูหรือแก้ข้อมูลได้<br>ติดต่อผู้ดูแลเพื่อขอบัญชี</div>
+  </form>
+</div>
+
+<dialog id="dlg">
+  <div class="modal-header"><div class="card-title" id="dlgTitle"></div><button class="close" id="dlgClose" aria-label="ปิด">&times;</button></div>
+  <div class="modal-body" id="dlgBody"></div>
+  <div class="modal-footer" id="dlgFoot"></div>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ============ Supabase config ============
+   กรอก 2 ค่านี้จาก Supabase > Project Settings > API
+   ปล่อยว่าง = ใช้ localStorage ของเครื่องตัวเอง (ข้อมูลไม่แชร์)
+   anon key เปิดเผยได้ตามปกติ ความปลอดภัยอยู่ที่ RLS + ต้อง login เท่านั้น */
+const SUPA_URL='';
+const SUPA_KEY='';
+
+/* ============ constants ============ */
+const LS='issue-tracker-v1';
+const COLS=['projects','issues','members'];
+const S={projects:[],issues:[],members:[]};
+
+const TYPES={
+  Bug:{label:'Bug',sub:'Defect / Error',icon:'●',pre:'BUG'},
+  Issue:{label:'Issue',sub:'Problem / Support',icon:'!',pre:'ISS'},
+  CR:{label:'Change Request',sub:'Requirement Change',icon:'↻',pre:'CR'}
+};
+const TKEYS=['Bug','Issue','CR'];
+const STATUS={open:'Open',progress:'In Progress',resolved:'Resolved',closed:'Closed'};
+const PRI={critical:'Critical',high:'High',medium:'Medium',low:'Low'};
+const PRIORDER={critical:0,high:1,medium:2,low:3};
+const ENVS=['DEV','UAT','PROD'];
+const ROLES={ba:'BA',dev:'Developer',tester:'Tester',support:'Support',pm:'PM'};
+
+const ROUTES={
+  '/dashboard':{title:'Issue Dashboard',view:()=>vDashboard()},
+  '/issues':{title:'All Issues',view:()=>vIssues()},
+  '/projects':{title:'Projects',view:()=>vProjects()},
+  '/users':{title:'Users',view:()=>vUsers()},
+  '/settings':{title:'Settings',view:()=>vSettings()}
+};
+const UI={year:'all',proj:'all',type:'all',q:'',status:'all',pri:'all'};
+let DB=null,loaded=true;
+let SB=null,SBUSER=null;   /* client และผู้ใช้ที่ login อยู่ เมื่อใช้ Supabase */
+
+/* ============ utils ============ */
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const fmtD=v=>{if(!v)return '—';const x=new Date(v+'T00:00:00');if(isNaN(x))return v;
+  return String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0')+'/'+x.getFullYear()};
+const proj=id=>S.projects.find(p=>p.id===id);
+const pName=id=>{const p=proj(id);return p?p.name:'—'};
+const pCode=id=>{const p=proj(id);return p&&p.code?p.code:'—'};
+const mName=id=>{const m=S.members.find(x=>x.id===id);return m?m.name:'—'};
+const sortedProjs=()=>[...S.projects].sort((a,b)=>String(a.code||'~').localeCompare(String(b.code||'~'),'th',{numeric:true}));
+const sortedMembers=()=>[...S.members].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'th'));
+const isLate=i=>i.due&&i.due<today()&&i.status!=='resolved'&&i.status!=='closed';
+const isOpen=i=>i.status!=='closed'&&i.status!=='resolved';
+const hasAny=()=>S.projects.length||S.issues.length||S.members.length;
+
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove('show'),2600)}
+function opts(list,sel,empty){return (empty!==undefined?`<option value="">${esc(empty)}</option>`:'')+
+  list.map(o=>`<option value="${esc(o.v)}"${String(o.v)===String(sel)?' selected':''}>${esc(o.t)}</option>`).join('')}
+const dictOpts=(d,sel,empty)=>opts(Object.entries(d).map(([v,t])=>({v,t})),sel,empty);
+const projOpts=(sel,empty)=>opts(sortedProjs().map(p=>({v:p.id,t:(p.code?p.code+' · ':'')+p.name})),sel,empty);
+const memberOpts=(sel,empty)=>opts(sortedMembers().map(m=>({v:m.id,t:m.name})),sel,empty);
+const typeOpts=(sel,empty)=>opts(TKEYS.map(k=>({v:k,t:TYPES[k].label})),sel,empty);
+const envOpts=sel=>opts(ENVS.map(e=>({v:e,t:e})),sel);
+
+function years(){
+  const ys=new Set(S.issues.map(i=>String(i.created||'').slice(0,4)).filter(Boolean));
+  ys.add(String(new Date().getFullYear()));
+  return [...ys].sort();
+}
+function nextCode(type){
+  const y=new Date().getFullYear();
+  const pre=TYPES[type].pre+'-'+y+'-';
+  const n=S.issues.filter(i=>String(i.code||'').startsWith(pre))
+    .map(i=>parseInt(String(i.code).slice(pre.length),10)).filter(x=>!isNaN(x));
+  return pre+String((n.length?Math.max(...n):0)+1).padStart(5,'0');
+}
+
+/* ============ storage ============ */
+function loadLocal(){try{const d=JSON.parse(localStorage.getItem(LS)||'null');if(d)COLS.forEach(c=>S[c]=Array.isArray(d[c])?d[c]:[])}catch(e){}}
+function saveLocal(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
+function errMsg(e){
+  if(e&&e.code==='quota_exceeded')return 'พื้นที่เก็บข้อมูลเต็ม ลบรายการที่ไม่ใช้ก่อนแล้วลองอีกครั้ง';
+  if(e&&e.code==='invalid_argument')return 'คุณไม่มีสิทธิ์แก้ไขข้อมูลนี้ หรือข้อมูลไม่ถูกต้อง';
+  if(e&&e.code==='resource_exhausted')return 'ทำรายการถี่เกินไป รอสักครู่แล้วลองใหม่';
+  return 'บันทึกไม่สำเร็จ ลองอีกครั้ง';
+}
+function sbErr(e){
+  const m=String((e&&e.message)||'');
+  if(/row-level security|violates row-level/i.test(m))return 'คุณไม่มีสิทธิ์แก้ข้อมูลนี้';
+  if(/JWT|token|session/i.test(m))return 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่';
+  if(/Failed to fetch|NetworkError/i.test(m))return 'ต่อฐานข้อมูลไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่';
+  return 'บันทึกไม่สำเร็จ: '+(m||'ไม่ทราบสาเหตุ');
+}
+async function put(col,obj){
+  if(DB){const {id,...body}=obj;try{await DB.collection(col).doc(id).set(body)}catch(e){toast(errMsg(e));throw e}}
+  else if(SB){
+    const {id,...body}=obj;
+    const {error}=await SB.from(col).upsert({id,data:body});
+    if(error){toast(sbErr(error));throw error}
+    /* อัปเดตในหน่วยความจำทันที ไม่รอ realtime เพื่อให้หน้าจอตอบสนองเร็ว */
+    const a=S[col],i=a.findIndex(x=>x.id===obj.id);
+    if(i>=0)a[i]=obj;else a.push(obj);
+    render();
+  }
+  else{const a=S[col],i=a.findIndex(x=>x.id===obj.id);if(i>=0)a[i]=obj;else a.push(obj);saveLocal();render()}
+}
+async function del(col,id){
+  if(DB){try{await DB.collection(col).doc(id).delete()}catch(e){toast(errMsg(e));throw e}}
+  else if(SB){
+    const {error}=await SB.from(col).delete().eq('id',id);
+    if(error){toast(sbErr(error));throw error}
+    S[col]=S[col].filter(x=>x.id!==id);render();
+  }
+  else{S[col]=S[col].filter(x=>x.id!==id);saveLocal();render()}
+}
+/* แถวใน Supabase เก็บเป็น {id, data} โดย data คือตัว object เดิมทั้งก้อน
+   จึงแปลงกลับเป็นรูปเดียวกับที่ทุก view ใช้อยู่ */
+async function sbLoad(col){
+  const {data,error}=await SB.from(col).select('id,data');
+  if(error){toast(sbErr(error));return false}
+  S[col]=(data||[]).map(r=>({id:r.id,...(r.data||{})}));
+  return true;
+}
+async function sbLoadAll(){await Promise.all(COLS.map(sbLoad));loaded=true;render()}
+
+/* ============ routing ============ */
+const ICON={dash:'▦',issues:'☷',create:'＋',proj:'▣',users:'◉',settings:'⚙'};
+function route(){const r=(location.hash||'#/dashboard').slice(1);return ROUTES[r]?r:'/dashboard'}
+function renderNav(r){
+  const a=(h,t,ic)=>`<a href="#${h}" class="menu-item${r===h?' active':''}"><i>${ic}</i>${t}</a>`;
+  $('#nav').innerHTML=
+    `<div class="menu-title">MAIN</div>`+
+    a('/dashboard','Dashboard',ICON.dash)+
+    a('/issues','All Issues',ICON.issues)+
+    `<button type="button" class="menu-item" onclick="editIssue()"><i>${ICON.create}</i>Create Issue</button>`+
+    `<div class="menu-title">MANAGEMENT</div>`+
+    a('/projects','Projects',ICON.proj)+
+    a('/users','Users',ICON.users)+
+    a('/settings','Settings',ICON.settings);
+}
+function render(){
+  const r=route();renderNav(r);
+  $('#pageTitle').textContent=ROUTES[r].title;
+  const el=$('#content');
+  const focusId=document.activeElement&&el.contains(document.activeElement)?document.activeElement.id:null;
+  const pos=focusId&&document.activeElement.selectionStart;
+  CH.length=0;
+  el.innerHTML=ROUTES[r].view();
+  mountCharts();
+  if(focusId){const f=document.getElementById(focusId);if(f){f.focus();try{f.setSelectionRange(pos,pos)}catch(e){}}}
+}
+function setNav(open){document.body.classList.toggle('nav-open',open);$('#menuBtn').setAttribute('aria-expanded',open)}
+window.addEventListener('hashchange',()=>{setNav(false);render();window.scrollTo(0,0)});
+$('#menuBtn').onclick=()=>setNav(!document.body.classList.contains('nav-open'));
+$('#scrim').onclick=()=>setNav(false);
+$('#nav').addEventListener('click',e=>{if(e.target.closest('a,button'))setNav(false)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('nav-open'))setNav(false)});
+
+/* ============ charts ============ */
+const CH=[];let chartOn=[];
+function chartSlot(build,h){const id='chart-'+CH.length;CH.push({id,build});
+  return `<div class="chartbox"${h?` style="height:${h}px"`:''}><canvas id="${id}"></canvas></div>`}
+function mountCharts(){
+  chartOn.forEach(c=>{try{c.destroy()}catch(e){}});chartOn=[];
+  if(!CH.length||!window.Chart)return;
+  const cs=getComputedStyle(document.documentElement);
+  const V=n=>cs.getPropertyValue('--'+n).trim();
+  Chart.defaults.font.family=V('font')||'sans-serif';
+  Chart.defaults.font.size=12;
+  Chart.defaults.font.weight=300;
+  Chart.defaults.color=V('muted');
+  for(const {id,build} of CH){
+    const el=document.getElementById(id);if(!el)continue;
+    const cfg=build(V);
+    if(!cfg){el.parentNode.innerHTML='<div class="chart-empty">ยังไม่มีข้อมูลพอจะแสดงกราฟ</div>';continue}
+    cfg.options={responsive:true,maintainAspectRatio:false,...cfg.options};
+    try{chartOn.push(new Chart(el,cfg))}catch(e){}
+  }
+}
+const legendBottom={position:'bottom',labels:{boxWidth:9,boxHeight:9,usePointStyle:true,pointStyle:'circle',padding:14}};
+function doughnut(labels,data,colors){
+  return V=>{
+    const sum=data.reduce((s,n)=>s+n,0);
+    if(!sum)return null;
+    return {type:'doughnut',
+      data:{labels,datasets:[{data,backgroundColor:colors.map(c=>V(c)),borderColor:V('surface'),borderWidth:2,hoverOffset:6}]},
+      options:{cutout:'70%',plugins:{legend:legendBottom,
+        tooltip:{callbacks:{label:c=>' '+c.label+': '+c.raw+' ('+Math.round(c.raw/sum*100)+'%)'}}}}};
+  };
+}
+function barChart(labels,sets,opt={}){
+  return V=>{
+    if(!labels.length||!sets.some(d=>d.data.some(n=>n>0)))return null;
+    const line=V('border'),muted=V('muted');
+    const valAx={beginAtZero:true,stacked:!!opt.stacked,grid:{color:line},border:{display:false},ticks:{color:muted,precision:0}};
+    const catAx={stacked:!!opt.stacked,grid:{display:false},border:{display:false},ticks:{color:muted,autoSkip:false,
+      callback(v){const s=String(this.getLabelForValue(v));return s.length>22?s.slice(0,21)+'…':s}}};
+    return {type:'bar',
+      data:{labels,datasets:sets.map(d=>({label:d.label,data:d.data,
+        backgroundColor:d.colors?d.colors.map(c=>V(c)):V(d.color),
+        borderRadius:4,borderSkipped:false,maxBarThickness:opt.horiz?16:44}))},
+      options:{indexAxis:opt.horiz?'y':'x',
+        plugins:{legend:sets.length>1?legendBottom:{display:false}},
+        scales:opt.horiz?{x:valAx,y:catAx}:{x:catAx,y:valAx}}};
+  };
+}
+
+/* ============ filtering ============ */
+function filtered(o={}){
+  const q=UI.q.trim().toLowerCase();
+  return S.issues.filter(i=>
+    (o.ignoreYear||UI.year==='all'||String(i.created||'').slice(0,4)===UI.year)&&
+    (UI.proj==='all'||i.projectId===UI.proj)&&
+    (UI.type==='all'||i.type===UI.type)&&
+    (o.ignoreStatus||UI.status==='all'||i.status===UI.status)&&
+    (o.ignorePri||UI.pri==='all'||i.priority===UI.pri)&&
+    (!q||[i.code,i.title,pName(i.projectId),pCode(i.projectId),i.desc,mName(i.assigneeId)].join(' ').toLowerCase().includes(q)));
+}
+function filterBar(extra){
+  const ys=years();
+  return `<div class="filter-bar">
+    <select id="fYear" aria-label="ปี" onchange="UI.year=this.value;render()">${opts(ys.map(y=>({v:y,t:y})),UI.year,'ทุกปี')}</select>
+    <select id="fProj" aria-label="Project" onchange="UI.proj=this.value;render()">${projOpts(UI.proj,'ทุก Project')}</select>
+    <select id="fType" aria-label="ประเภท" onchange="UI.type=this.value;render()">${typeOpts(UI.type,'ทุกประเภท')}</select>
+    ${extra||''}
+    <input class="search" type="search" id="fQ" placeholder="ค้นหา Issue ID / ชื่อ Issue / Project..." value="${esc(UI.q)}" oninput="UI.q=this.value;render()">
+    <button class="btn btn-primary" onclick="editIssue()">+ เพิ่ม Issue</button>
+  </div>`;
+}
+const sortNewest=(a,b)=>String(b.created||'').localeCompare(String(a.created||''))||String(b.code||'').localeCompare(String(a.code||''),undefined,{numeric:true});
+
+/* ============ shared pieces ============ */
+function issueRows(list){
+  return list.map(i=>`<tr class="click" onclick="editIssue('${i.id}')">
+    <td class="id" data-label="ID">#${esc(i.code||'—')}</td>
+    <td data-label="Type"><span class="badge badge-${esc(i.type)}">${esc(TYPES[i.type]?TYPES[i.type].label==='Change Request'?'CR':TYPES[i.type].label:i.type)}</span></td>
+    <td data-label="Project">${esc(pCode(i.projectId))}</td>
+    <td class="lead" data-label="Issue">${esc(i.title)}</td>
+    <td data-label="Priority" class="priority-${esc(i.priority)}">${esc(PRI[i.priority]||'—')}</td>
+    <td data-label="Assignee">${esc(i.assigneeId?mName(i.assigneeId):'—')}</td>
+    <td data-label="Status"><span class="status status-${esc(i.status)}">${esc(STATUS[i.status]||'—')}</span></td>
+    <td data-label="Due Date" class="${isLate(i)?'late':''}" style="white-space:nowrap">${fmtD(i.due)}</td></tr>`).join('');
+}
+const ISSUE_HEAD='<tr><th>ID</th><th>Type</th><th>Project</th><th>Issue</th><th>Priority</th><th>Assignee</th><th>Status</th><th>Due Date</th></tr>';
+function emptyState(title,msg,btn){
+  return `<div class="card"><div class="empty"><b>${esc(title)}</b><span>${esc(msg)}</span>${btn?`<div class="tools" style="margin-top:12px">${btn}</div>`:''}</div></div>`;
+}
+
+/* ============ Dashboard ============ */
+function vDashboard(){
+  let h=filterBar();
+  if(!hasAny())return h+emptyState('ยังไม่มีข้อมูลในระบบ','เริ่มจากสร้าง Project แล้วบันทึก Issue หรือโหลดข้อมูลตัวอย่างเพื่อดูการทำงาน',
+    `<a class="btn" href="#/projects">ไปที่ Projects</a>${loaded?'<button class="btn btn-primary" onclick="seed()">โหลดข้อมูลตัวอย่าง</button>':''}`);
+
+  const list=filtered();
+  const cnt=t=>list.filter(i=>i.type===t).length;
+  const yearLabel=UI.year==='all'?'ทุกปี':'ปี '+UI.year;
+  const kpi=(cls,icon,title,n,sub)=>`<div class="kpi"><div class="kpi-header"><div class="kpi-title">${esc(title)}</div><div class="kpi-icon ${cls}">${icon}</div></div><div class="kpi-number">${n}</div><div class="kpi-sub">${esc(sub)}</div></div>`;
+  h+=`<div class="kpi-grid">
+    ${kpi('icon-total','◉','Total Issues',list.length,'รายการทั้งหมดใน'+yearLabel)}
+    ${kpi('icon-bug','●','Bug',cnt('Bug'),TYPES.Bug.sub)}
+    ${kpi('icon-issue','!','Issue',cnt('Issue'),TYPES.Issue.sub)}
+    ${kpi('icon-cr','↻','Change Request',cnt('CR'),TYPES.CR.sub)}
+  </div>`;
+
+  /* Issue Trend ไม่สนตัวกรองปี เพราะกราฟนี้คือการเทียบข้ามปี */
+  const trend=filtered({ignoreYear:true});
+  const ys=years().filter(y=>trend.some(i=>String(i.created||'').slice(0,4)===y)||y===String(new Date().getFullYear()));
+  h+=`<div class="dashboard-grid">
+    <div class="card"><div class="card-header"><div><div class="card-title">Issue Trend</div><div class="card-sub">จำนวน Bug / Issue / CR แยกตามปี (ไม่สนตัวกรองปี)</div></div></div>
+      ${chartSlot(barChart(ys,TKEYS.map(t=>({label:TYPES[t].label==='Change Request'?'CR':TYPES[t].label,color:t==='Bug'?'bug':t==='Issue'?'issue':'cr',
+        data:ys.map(y=>trend.filter(i=>i.type===t&&String(i.created||'').slice(0,4)===y).length)}))),230)}</div>
+    <div class="card"><div class="card-header"><div><div class="card-title">Issue Distribution</div><div class="card-sub">${esc(yearLabel)}</div></div></div>
+      ${chartSlot(doughnut(['Bug','Issue','CR'],TKEYS.map(t=>cnt(t)),['bug','issue','cr']),230)}</div>
+  </div>`;
+
+  const projs=sortedProjs().filter(p=>list.some(i=>i.projectId===p.id));
+  h+=`<div class="card"><div class="card-header"><div><div class="card-title">Project Overview</div><div class="card-sub">จำนวนรายการแยกตาม Project</div></div>
+    <a class="btn btn-sm" href="#/projects">จัดการ Project</a></div>`;
+  h+=projs.length?`<div class="project-grid">${projs.map(p=>{
+    const l=list.filter(i=>i.projectId===p.id);
+    const c=t=>l.filter(i=>i.type===t).length;
+    return `<button type="button" class="project-card" onclick="UI.proj='${p.id}';location.hash='#/issues'">
+      <div class="project-name">${esc(p.name)}</div><div class="project-code">${esc(p.code||'—')}</div>
+      <div class="project-count">
+        <div class="count-box bug-box"><strong>${c('Bug')}</strong>Bug</div>
+        <div class="count-box issue-box"><strong>${c('Issue')}</strong>Issue</div>
+        <div class="count-box cr-box"><strong>${c('CR')}</strong>CR</div></div></button>`}).join('')}</div>`
+    :'<div class="empty"><span>ไม่มี Project ที่ตรงกับตัวกรองนี้</span></div>';
+  h+='</div>';
+
+  const recent=[...list].sort(sortNewest).slice(0,8);
+  h+=`<div class="card"><div class="card-header"><div><div class="card-title">Recent Issues</div><div class="card-sub">รายการ Bug / Issue / CR ล่าสุด</div></div>
+    <a class="btn btn-sm" href="#/issues">ดูทั้งหมด</a></div>`;
+  h+=recent.length?`<div class="table-wrapper"><table class="rt"><thead>${ISSUE_HEAD}</thead><tbody>${issueRows(recent)}</tbody></table></div>`
+    :'<div class="empty"><span>ไม่พบรายการตามตัวกรองนี้</span></div>';
+  return h+'</div>';
+}
+
+/* ============ All Issues ============ */
+function vIssues(){
+  const extra=`<select id="fStatus" aria-label="Status" onchange="UI.status=this.value;render()">${dictOpts(STATUS,UI.status,'ทุกสถานะ')}</select>
+    <select id="fPri" aria-label="Priority" onchange="UI.pri=this.value;render()">${dictOpts(PRI,UI.pri,'ทุก Priority')}</select>`;
+  let h=filterBar(extra);
+  if(!S.issues.length)return h+emptyState('ยังไม่มี Issue','บันทึก Bug / Issue / CR รายการแรกเข้าระบบ',
+    S.projects.length?'<button class="btn btn-primary" onclick="editIssue()">+ เพิ่ม Issue</button>':'<a class="btn btn-primary" href="#/projects">สร้าง Project ก่อน</a>');
+  const list=filtered().sort((a,b)=>(PRIORDER[a.priority]??9)-(PRIORDER[b.priority]??9)||String(a.due||'9').localeCompare(String(b.due||'9'))||sortNewest(a,b));
+  if(!list.length)return h+emptyState('ไม่พบ Issue ตามเงื่อนไข','ลองล้างตัวกรองหรือเปลี่ยนคำค้น');
+  const late=list.filter(isLate).length;
+  return h+`<div class="card">
+    <div class="rowcount">${list.length} จาก ${S.issues.length} รายการ${late?` · <span class="late">เลยกำหนด ${late} รายการ</span>`:''}</div>
+    <div class="table-wrapper"><table class="rt"><thead>${ISSUE_HEAD}</thead><tbody>${issueRows(list)}</tbody></table></div></div>`;
+}
+
+/* ============ Issue modal ============ */
+function editIssue(id){
+  if(!S.projects.length){toast('สร้าง Project ก่อน แล้วจึงเพิ่ม Issue');location.hash='#/projects';return}
+  const isNew=!id;
+  const cur=id?S.issues.find(x=>x.id===id):null;
+  if(id&&!cur){toast('ไม่พบรายการนี้แล้ว');return}
+  const i=cur?{...cur}:{type:'Bug',projectId:(UI.proj!=='all'&&UI.proj)||sortedProjs()[0].id,priority:'medium',
+    status:'open',env:'UAT',created:today(),code:nextCode('Bug')};
+  modal(isNew?'Create New Issue':'Edit Issue #'+(i.code||''),`<div class="form-grid">
+    <div class="form-group"><label>Type</label><select data-f="type" id="iType">${typeOpts(i.type)}</select></div>
+    <div class="form-group"><label>Project</label><select data-f="projectId" id="iProj">${projOpts(i.projectId)}</select></div>
+    <div class="form-group full"><label>Issue Title</label><input type="text" data-f="title" id="iTitle" value="${esc(i.title)}" placeholder="ระบุชื่อ Issue..."></div>
+    <div class="form-group"><label>Priority</label><select data-f="priority">${dictOpts(PRI,i.priority)}</select></div>
+    <div class="form-group"><label>Status</label><select data-f="status">${dictOpts(STATUS,i.status)}</select></div>
+    <div class="form-group"><label>Assignee</label><select data-f="assigneeId">${memberOpts(i.assigneeId,'— ยังไม่มอบหมาย —')}</select></div>
+    <div class="form-group"><label>Environment</label><select data-f="env">${envOpts(i.env)}</select></div>
+    <div class="form-group"><label>Issue ID</label><input type="text" data-f="code" id="iCode" value="${esc(i.code)}"></div>
+    <div class="form-group"><label>Due Date</label><input type="date" data-f="due" value="${esc(i.due)}"></div>
+    <div class="form-group full"><label>Description</label><textarea data-f="desc" placeholder="รายละเอียดของ Bug / Issue / CR...">${esc(i.desc)}</textarea></div>
+    <div class="form-group full"><span class="hint">สร้างเมื่อ ${fmtD(i.created)}${cur?'':' · Issue ID ตั้งให้อัตโนมัติ แก้ได้'}</span></div>
+  </div>`,
+  async f=>{
+    if(!f.title.trim()){toast('กรอก Issue Title ก่อนบันทึก');return false}
+    const n={...i,...f,id:i.id||uid(),title:f.title.trim(),code:f.code.trim()||nextCode(f.type),created:i.created||today()};
+    await put('issues',n);toast('บันทึก #'+n.code+' แล้ว');
+  },
+  cur?async()=>{
+    if(!await confirmBox('ลบ #'+(i.code||'Issue')+'?','ลบแล้วกู้คืนไม่ได้'))return false;
+    await del('issues',id);toast('ลบ Issue แล้ว');
+  }:null,'Save Issue');
+  if(isNew){
+    const sync=()=>{$('#iCode').value=nextCode($('#iType').value)};
+    $('#iType').onchange=sync;
+  }
+}
+
+/* ============ Projects ============ */
+function vProjects(){
+  let h=`<div class="card-header" style="margin-bottom:16px"><div class="card-sub">Project ที่ใช้ผูกกับทุก Issue</div>
+    <button class="btn btn-primary" onclick="editProject()">+ เพิ่ม Project</button></div>`;
+  if(!S.projects.length)return h+emptyState('ยังไม่มี Project','สร้าง Project แรก หรือโหลดข้อมูลตัวอย่างเพื่อดูการทำงาน',
+    `<button class="btn btn-primary" onclick="editProject()">+ เพิ่ม Project</button>${loaded&&!hasAny()?'<button class="btn" onclick="seed()">โหลดข้อมูลตัวอย่าง</button>':''}`);
+  const rows=sortedProjs().map(p=>{
+    const l=S.issues.filter(i=>i.projectId===p.id);
+    const c=t=>l.filter(i=>i.type===t).length;
+    const open=l.filter(isOpen).length;
+    return `<tr class="click" onclick="editProject('${p.id}')">
+      <td class="id" data-label="Code">${esc(p.code||'—')}</td>
+      <td class="lead" data-label="Project">${esc(p.name)}${p.owner?`<span class="sub-t">${esc(p.owner)}</span>`:''}</td>
+      <td class="n" data-label="Bug">${c('Bug')}</td><td class="n" data-label="Issue">${c('Issue')}</td><td class="n" data-label="CR">${c('CR')}</td>
+      <td class="n" data-label="ทั้งหมด">${l.length}</td>
+      <td class="n ${open?'late':''}" data-label="ยังไม่ปิด">${open}</td></tr>`}).join('');
+  return h+`<div class="card"><div class="rowcount">${S.projects.length} Project</div><div class="table-wrapper"><table class="rt">
+    <thead><tr><th>Code</th><th>Project</th><th class="n">Bug</th><th class="n">Issue</th><th class="n">CR</th><th class="n">ทั้งหมด</th><th class="n">ยังไม่ปิด</th></tr></thead>
+    <tbody>${rows}</tbody></table></div></div>`;
+}
+function editProject(id){
+  const p=id?{...proj(id)}:{};
+  modal(id?'Edit Project':'Create New Project',`<div class="form-grid">
+    <div class="form-group"><label>Project Code</label><input type="text" data-f="code" value="${esc(p.code)}" placeholder="เช่น DMS-2026"></div>
+    <div class="form-group"><label>ผู้รับผิดชอบ</label><input type="text" data-f="owner" value="${esc(p.owner)}" placeholder="ชื่อ / ทีม"></div>
+    <div class="form-group full"><label>Project Name</label><input type="text" data-f="name" value="${esc(p.name)}" placeholder="เช่น DMS AI Digital Health"></div>
+    <div class="form-group full"><label>รายละเอียด</label><textarea data-f="desc">${esc(p.desc)}</textarea></div>
+  </div>`,
+  async f=>{
+    if(!f.name.trim()){toast('กรอก Project Name ก่อนบันทึก');return false}
+    await put('projects',{...p,...f,id:p.id||uid(),name:f.name.trim(),code:f.code.trim()});
+    toast('บันทึก Project แล้ว');
+  },
+  id?async()=>{
+    const l=S.issues.filter(i=>i.projectId===id);
+    if(!await confirmBox(`ลบ Project "${p.name}"?`,l.length?`Issue ${l.length} รายการของ Project นี้จะถูกลบไปด้วย`:'ลบแล้วกู้คืนไม่ได้'))return false;
+    for(const i of l)await del('issues',i.id);
+    await del('projects',id);toast('ลบ Project แล้ว');
+  }:null);
+}
+
+/* ============ Users ============ */
+function vUsers(){
+  let h=`<div class="card-header" style="margin-bottom:16px"><div class="card-sub">รายชื่อที่ใช้เลือกเป็น Assignee ของ Issue</div>
+    <button class="btn btn-primary" onclick="editMember()">+ เพิ่ม User</button></div>`;
+  if(!S.members.length)return h+emptyState('ยังไม่มี User','เพิ่มทีมงานเพื่อใช้มอบหมาย Issue','<button class="btn btn-primary" onclick="editMember()">+ เพิ่ม User</button>');
+  return h+`<div class="card"><ul class="mlist">${sortedMembers().map(m=>{
+    const n=S.issues.filter(i=>i.assigneeId===m.id&&isOpen(i)).length;
+    return `<li><span class="nm">${esc(m.name)}</span><span class="tag">${esc(ROLES[m.role]||'—')}</span>
+      <span class="hint">ค้างอยู่ ${n}</span>
+      <button class="btn btn-sm" onclick="editMember('${m.id}')">แก้ไข</button></li>`}).join('')}</ul></div>`;
+}
+function editMember(id){
+  const m=id?{...S.members.find(x=>x.id===id)}:{role:'dev'};
+  modal(id?'Edit User':'Create New User',`<div class="form-grid">
+    <div class="form-group full"><label>ชื่อ</label><input type="text" data-f="name" value="${esc(m.name)}" placeholder="เช่น Dev Team"></div>
+    <div class="form-group"><label>บทบาท</label><select data-f="role">${dictOpts(ROLES,m.role)}</select></div>
+  </div>`,
+  async f=>{
+    if(!f.name.trim()){toast('กรอกชื่อก่อนบันทึก');return false}
+    await put('members',{...m,...f,id:m.id||uid(),name:f.name.trim()});toast('บันทึกแล้ว');
+  },
+  id?async()=>{
+    const n=S.issues.filter(i=>i.assigneeId===id).length;
+    if(!await confirmBox(`ลบ "${m.name}"?`,n?`ถูกใช้เป็น Assignee อยู่ ${n} รายการ ช่องนั้นจะกลายเป็น "—"`:'ลบแล้วกู้คืนไม่ได้'))return false;
+    await del('members',id);toast('ลบแล้ว');
+  }:null);
+}
+
+/* ============ Settings ============ */
+function vSettings(){
+  const online=!!DB||!!SB;
+  const where=DB?'ใช้ฐานข้อมูลของ Claude artifact ทุกคนที่เปิดหน้านี้เห็นข้อมูลชุดเดียวกันแบบ realtime'
+    :SB?('ใช้ Supabase เข้าสู่ระบบเป็น '+esc(SBUSER&&SBUSER.email||'—')+' ทุกคนที่ login เห็นข้อมูลชุดเดียวกันแบบ realtime')
+    :'เก็บใน localStorage ของเบราว์เซอร์เครื่องนี้ ไม่แชร์ข้ามเครื่องและข้ามคน';
+  return `<div class="card"><div class="card-header"><div><div class="card-title">การเก็บข้อมูล</div>
+    <div class="card-sub">${where}</div></div></div>
+    <div class="rowcount">Project ${S.projects.length} · Issue ${S.issues.length} · User ${S.members.length}</div></div>
+
+  <div class="card"><div class="card-header"><div><div class="card-title">สำรอง / ย้ายข้อมูล</div>
+    <div class="card-sub">ไฟล์ JSON ใช้ย้ายข้อมูลระหว่างเครื่อง หรือระหว่างโหมด localStorage กับฐานข้อมูลกลาง</div></div></div>
+    <div class="tools"><button class="btn" onclick="exportJSON()">ส่งออกเป็นไฟล์ JSON</button>
+    <button class="btn" onclick="copyJSON()">คัดลอก JSON</button>
+    <button class="btn" onclick="importJSON()">นำเข้า JSON</button></div></div>
+
+  <div class="card"><div class="card-header"><div><div class="card-title">ข้อมูลตัวอย่าง</div>
+    <div class="card-sub">ใส่ Project และ Issue ตัวอย่างเพื่อดูว่าหน้าตาเต็ม ๆ เป็นอย่างไร</div></div></div>
+    <div class="tools"><button class="btn" onclick="seed()"${hasAny()?' disabled':''}>โหลดข้อมูลตัวอย่าง</button>
+    ${hasAny()?'<span class="hint" style="align-self:center">มีข้อมูลอยู่แล้ว ล้างข้อมูลก่อนจึงจะโหลดตัวอย่างได้</span>':''}</div></div>
+
+  <div class="card"><div class="card-header"><div><div class="card-title">ล้างข้อมูลทั้งหมด</div>
+    <div class="card-sub">ลบ Project, Issue และ User ทั้งหมด${online?' ออกจากฐานข้อมูลกลาง มีผลกับทุกคน':' ในเบราว์เซอร์นี้'}</div></div></div>
+    <div class="tools"><button class="btn btn-danger" onclick="wipeAll()"${hasAny()?'':' disabled'}>ล้างข้อมูลทั้งหมด</button></div></div>`;
+}
+const inArtifact=()=>!!(window.claude&&typeof window.claude.use==='function');
+async function exportJSON(){
+  const text=JSON.stringify({app:'issue-tracker',version:1,exported:new Date().toISOString(),
+    projects:S.projects,issues:S.issues,members:S.members},null,2);
+  const name='issue-tracker-'+today()+'.json';
+  /* ในหน้า artifact ลิงก์ <a download> ไม่ทำงาน ต้องบันทึกผ่าน capability downloads
+     ส่วนตอนเปิดไฟล์ตรง ๆ ไม่มี capability จึงใช้ลิงก์ตามปกติ */
+  if(inArtifact()){
+    let dl=null;try{dl=await window.claude.use('downloads')}catch(e){}
+    if(!dl){toast('หน้านี้ดาวน์โหลดไฟล์ไม่ได้ ใช้ "คัดลอก JSON" แทน');return}
+    try{await dl.save({filename:name,data:text});toast('ส่งออกแล้ว')}
+    catch(e){toast(e&&e.code==='declined'?'ยกเลิกการส่งออก':'ส่งออกไม่สำเร็จ ลองอีกครั้ง')}
+    return;
+  }
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));
+  a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  toast('ส่งออกแล้ว');
+}
+async function copyJSON(){
+  const text=JSON.stringify({app:'issue-tracker',version:1,exported:new Date().toISOString(),
+    projects:S.projects,issues:S.issues,members:S.members},null,2);
+  try{await navigator.clipboard.writeText(text);toast('คัดลอก JSON แล้ว วางเก็บไว้ในไฟล์ได้เลย')}
+  catch(e){toast('คัดลอกไม่สำเร็จ เบราว์เซอร์ไม่อนุญาต')}
+}
+function importJSON(){
+  /* รับได้ทั้งไฟล์และการวางข้อความ เพราะบาง sandbox ไม่เปิดหน้าต่างเลือกไฟล์ให้ */
+  modal('นำเข้าข้อมูลจาก JSON',`<div class="form-grid">
+    <div class="form-group full"><label>เลือกไฟล์ .json</label><input type="file" id="impFile" accept="application/json,.json"></div>
+    <div class="form-group full"><label>หรือวางเนื้อหา JSON ที่นี่</label><textarea id="impText" placeholder='{"projects":[...],"issues":[...],"members":[...]}'></textarea></div>
+    <div class="form-group full"><span class="hint">รายการที่ id ซ้ำกับของเดิมจะถูกเขียนทับ ส่วนที่เหลือจะถูกเพิ่มเข้าไป</span></div>
+  </div>`,
+  async()=>{
+    const fEl=$('#impFile'),tEl=$('#impText');
+    let raw=tEl.value.trim();
+    if(!raw&&fEl.files&&fEl.files[0]){try{raw=await fEl.files[0].text()}catch(e){}}
+    if(!raw){toast('เลือกไฟล์หรือวาง JSON ก่อน');return false}
+    let d;try{d=JSON.parse(raw)}catch(e){toast('อ่าน JSON ไม่ได้ ตรวจรูปแบบอีกครั้ง');return false}
+    const got=COLS.filter(c=>Array.isArray(d[c]));
+    if(!got.length){toast('ไม่พบ projects / issues / members ในข้อมูลนี้');return false}
+    let n=0;
+    for(const c of got)for(const row of d[c]){if(!row||!row.id)continue;await put(c,row);n++}
+    toast('นำเข้า '+n+' รายการแล้ว');
+  },null,'นำเข้า');
+}
+async function wipeAll(){
+  if(!await confirmBox('ล้างข้อมูลทั้งหมด?',(DB?'ข้อมูลในฐานข้อมูลกลางจะถูกลบ มีผลกับทุกคนที่ใช้หน้านี้ ':'')+'ลบแล้วกู้คืนไม่ได้ แนะนำให้ส่งออก JSON เก็บไว้ก่อน'))return;
+  for(const c of COLS)for(const row of [...S[c]])await del(c,row.id);
+  toast('ล้างข้อมูลแล้ว');
+}
+
+/* ============ modal plumbing ============ */
+function modal(title,body,onSave,onDelete,saveLabel){
+  const d=$('#dlg');
+  $('#dlgTitle').textContent=title;
+  $('#dlgBody').innerHTML=body;
+  $('#dlgFoot').innerHTML=(onDelete?'<button class="btn btn-danger left" id="mDel">ลบ</button>':'')+
+    '<button class="btn" id="mCancel">Cancel</button><button class="btn btn-primary" id="mSave">'+esc(saveLabel||'Save')+'</button>';
+  $('#mCancel').onclick=()=>d.close();
+  $('#mSave').onclick=async()=>{
+    const f={};$('#dlgBody').querySelectorAll('[data-f]').forEach(el=>f[el.dataset.f]=el.value);
+    const b=$('#mSave');b.disabled=true;
+    try{const r=await onSave(f);if(r!==false)d.close()}catch(e){}
+    b.disabled=false;
+  };
+  if(onDelete)$('#mDel').onclick=async()=>{try{const r=await onDelete();if(r!==false)d.close()}catch(e){}};
+  d.showModal();
+  const first=$('#dlgBody').querySelector('input[type=text]');
+  if(first&&!first.value)first.focus();
+}
+$('#dlgClose').onclick=()=>$('#dlg').close();
+function confirmBox(title,msg,okLabel){
+  return new Promise(res=>{
+    const w=document.createElement('dialog');w.style.width='min(430px,calc(100vw - 24px))';
+    w.innerHTML=`<div class="modal-header"><div class="card-title">${esc(title)}</div></div>
+      <div class="modal-body">${esc(msg)}</div>
+      <div class="modal-footer"><button class="btn" data-a="0">ยกเลิก</button>
+      <button class="btn btn-primary" data-a="1" style="background:var(--bug);border-color:var(--bug);color:#fff">${esc(okLabel||'ลบ')}</button></div>`;
+    document.body.appendChild(w);w.showModal();
+    const done=v=>{w.close();w.remove();res(v)};
+    w.addEventListener('cancel',()=>done(false));
+    w.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>done(b.dataset.a==='1'));
+  });
+}
+
+/* ============ sample data ============ */
+async function seed(){
+  if(hasAny()){toast('มีข้อมูลอยู่แล้ว');return}
+  toast('กำลังโหลดข้อมูลตัวอย่าง…');
+  const M=(name,role)=>({id:uid(),name,role});
+  const mem=[M('BA Team','ba'),M('Dev Team','dev'),M('Tester','tester'),M('Support','support'),M('PM','pm')];
+  const P=(code,name,owner)=>({id:uid(),code,name,owner,desc:''});
+  const projs=[
+    P('DMS-2026','DMS AI Digital Health','Dev Team'),
+    P('KM-2026','KM Platform','BA Team'),
+    P('ECS-2026','Enterprise Content System','Dev Team'),
+    P('SSO-2026','SSO','PM')];
+  const T={
+    Bug:['ไม่สามารถ Upload PDF ได้','ข้อมูลแสดงผิดหมวดหมู่','ปุ่มบันทึกกดแล้วไม่ตอบสนอง','รายงานสรุปยอดไม่ตรงกับข้อมูลจริง','ระบบค้างเมื่อค้นหาข้อมูลจำนวนมาก','แสดงวันที่ผิดรูปแบบ','ไฟล์แนบเปิดไม่ได้บนมือถือ','Export Excel ได้ไฟล์ว่าง','Session หลุดระหว่างกรอกฟอร์ม','รูปโปรไฟล์อัปโหลดแล้วไม่แสดง'],
+    Issue:['User ไม่สามารถ Login ได้','ขอสิทธิ์เข้าถึงเมนูรายงาน','ระบบส่งอีเมลแจ้งเตือนช้ากว่าปกติ','ผู้ใช้ลืมรหัสผ่าน ขอ reset','สอบถามวิธีใช้งานเมนูค้นหา','ข้อมูลเก่าก่อนปี 2024 ค้นหาไม่เจอ','ขอเพิ่มผู้ใช้งานใหม่ 5 คน','ขอกู้คืนเอกสารที่ลบผิด'],
+    CR:['เพิ่ม Filter หมวดหมู่','เพิ่มการส่งออกรายงานเป็น PDF','ปรับหน้าจอ Dashboard ให้แสดงกราฟ','เพิ่ม Single Sign-On กับระบบกลาง','ปรับ Workflow การอนุมัติเอกสาร','เพิ่มการแจ้งเตือนผ่าน LINE','เพิ่มช่องค้นหาแบบขั้นสูง']};
+  const pri=['critical','high','high','medium','medium','medium','low'];
+  const st=['open','progress','progress','resolved','closed','closed','open'];
+  const envs=['DEV','UAT','PROD','UAT'];
+  const yr=new Date().getFullYear();
+  const counters={};
+  const mk=(type,y,pi,k)=>{
+    const pre=TYPES[type].pre+'-'+y+'-';
+    counters[pre]=(counters[pre]||0)+1;
+    const pool=T[type];
+    const day=((k*7)%27)+1, mon=((k*5)%12)+1;
+    const d=v=>y+'-'+String(mon).padStart(2,'0')+'-'+String(Math.min(day+v,28)).padStart(2,'0');
+    const status=st[k%st.length];
+    return {id:uid(),code:pre+String(counters[pre]).padStart(5,'0'),type,projectId:projs[pi].id,
+      title:pool[k%pool.length],desc:'',priority:pri[k%pri.length],status,
+      assigneeId:mem[type==='CR'?0:type==='Issue'?3:1].id,env:envs[k%envs.length],
+      created:d(0),due:d(9)};
+  };
+  const issues=[];let k=0;
+  /* ปีเก่าใส่น้อยลง ให้กราฟ Trend เห็นแนวโน้มชัด */
+  const plan=[[yr-2,10],[yr-1,18],[yr,26]];
+  for(const [y,n] of plan)for(let j=0;j<n;j++){
+    const type=TKEYS[j%3==0?0:j%3==1?1:2];
+    issues.push(mk(type,y,j%projs.length,k++));
+  }
+  if(!DB){S.members=mem;S.projects=projs;S.issues=issues;saveLocal();render();toast('โหลดข้อมูลตัวอย่างแล้ว');return}
+  try{
+    const jobs=[...mem.map(x=>['members',x]),...projs.map(x=>['projects',x]),...issues.map(x=>['issues',x])];
+    for(let i=0;i<jobs.length;i+=6)await Promise.all(jobs.slice(i,i+6).map(([c,o])=>put(c,o)));
+    toast('โหลดข้อมูลตัวอย่างแล้ว');
+  }catch(e){}
+}
+
+/* ============ auth (Supabase) ============ */
+function showAuth(show){
+  $('#authScreen').hidden=!show;
+  document.body.classList.toggle('locked',show);
+  if(show)setTimeout(()=>{const e=$('#authEmail');e&&e.focus()},50);
+}
+function authMsg(text,isErr){
+  const el=$('#authMsg');el.textContent=text||'';el.classList.toggle('err',!!isErr);
+}
+$('#authForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!SB)return;
+  const btn=$('#authBtn'),email=$('#authEmail').value.trim(),pass=$('#authPass').value;
+  if(!email||!pass)return;
+  btn.disabled=true;authMsg('กำลังเข้าสู่ระบบ…');
+  const {error}=await SB.auth.signInWithPassword({email,password:pass});
+  btn.disabled=false;
+  if(error){
+    authMsg(/Invalid login/i.test(error.message||'')?'อีเมลหรือรหัสผ่านไม่ถูกต้อง':(error.message||'เข้าสู่ระบบไม่สำเร็จ'),true);
+    return;
+  }
+  authMsg('');$('#authPass').value='';
+});
+async function signOut(){
+  if(!SB)return;
+  await SB.auth.signOut();
+  toast('ออกจากระบบแล้ว');
+}
+function setSignedIn(user){
+  SBUSER=user;
+  const name=(user.email||'').split('@')[0]||'ผู้ใช้งาน';
+  $('#userName').textContent=name;
+  $('#userAvatar').textContent=name.charAt(0).toUpperCase();
+  const st=$('#store');
+  st.classList.add('live');
+  st.innerHTML='<i></i><span>บันทึกออนไลน์ ทุกคนเห็นข้อมูลชุดเดียวกัน<br><button type="button" class="linkout" id="signOutBtn">ออกจากระบบ</button></span>';
+  $('#signOutBtn').onclick=signOut;
+  showAuth(false);
+}
+function setSignedOut(){
+  SBUSER=null;
+  COLS.forEach(c=>S[c]=[]);
+  $('#userName').textContent='ผู้ใช้งาน';
+  $('#userAvatar').textContent='U';
+  render();
+  showAuth(true);
+}
+
+/* ============ boot ============ */
+loadLocal();render();
+document.addEventListener('DOMContentLoaded',mountCharts);
+try{matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>mountCharts())}catch(e){}
+
+/* เปิดผ่าน GitHub Pages / เซิร์ฟเวอร์ทั่วไป: ใช้ Supabase เมื่อกรอก config ไว้
+   ต้อง login ก่อนเสมอ เพราะหน้าเว็บเปิดสาธารณะและ anon key อยู่ในโค้ด */
+document.addEventListener('DOMContentLoaded',()=>{
+  if(!SUPA_URL||!SUPA_KEY)return;
+  if(inArtifact())return;   /* อยู่บน claude.ai ใช้ฐานข้อมูลของ artifact แทน */
+  if(!window.supabase||typeof window.supabase.createClient!=='function'){
+    toast('โหลดไลบรารี Supabase ไม่สำเร็จ ใช้ข้อมูลในเครื่องนี้ชั่วคราว');return;
+  }
+  SB=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+  loaded=false;
+  COLS.forEach(c=>S[c]=[]);
+  render();
+
+  SB.auth.getSession().then(({data})=>{
+    if(data&&data.session)return;      /* onAuthStateChange จะจัดการต่อเอง */
+    showAuth(true);
+  });
+
+  SB.auth.onAuthStateChange((event,session)=>{
+    if(session&&session.user){
+      setSignedIn(session.user);
+      sbLoadAll();
+      subscribeRealtime();
+    }else{
+      setSignedOut();
+    }
+  });
+});
+
+let sbChannel=null;
+function subscribeRealtime(){
+  if(!SB||sbChannel)return;          /* สมัครครั้งเดียวต่อการ login */
+  sbChannel=SB.channel('issue-tracker');
+  for(const col of COLS){
+    sbChannel.on('postgres_changes',{event:'*',schema:'public',table:col},()=>{
+      sbLoad(col).then(ok=>{if(ok)render()});
+    });
+  }
+  sbChannel.subscribe();
+}
+
+/* เปิดเป็น Claude artifact: ใช้ฐานข้อมูลของ artifact แทน ไม่ต้อง login ซ้ำ */
+(async()=>{
+  if(!window.claude||typeof window.claude.use!=='function')return;
+  const st=$('#store');
+  st.querySelector('span').textContent='กำลังเชื่อมต่อฐานข้อมูล…';
+
+  claude.use('user').then(u=>{
+    if(!u)return;
+    const me=u.me&&u.me();
+    Promise.resolve(me).then(p=>{
+      const name=(p&&p.name)||'';
+      if(!name)return;
+      $('#userName').textContent=name;
+      $('#userAvatar').textContent=name.trim().charAt(0).toUpperCase();
+    }).catch(()=>{});
+  }).catch(()=>{});
+
+  let db=null;try{db=await claude.use('db')}catch(e){}
+  if(!db){st.querySelector('span').textContent='บันทึกในเบราว์เซอร์นี้';return}
+  DB=db;loaded=false;COLS.forEach(c=>S[c]=[]);render();
+  const got=new Set();
+  for(const col of COLS){
+    db.collection(col).onSnapshot(snap=>{
+      S[col]=snap.docs.map(d=>({id:d.id,...d.data()}));
+      got.add(col);if(got.size===COLS.length)loaded=true;
+      render();
+    },e=>toast('โหลดข้อมูลไม่สำเร็จ รีเฟรชหน้าเพื่อลองใหม่'));
+  }
+  st.classList.add('live');
+  st.querySelector('span').textContent='บันทึกออนไลน์ ทุกคนเห็นข้อมูลชุดเดียวกัน';
+})();
+</script>
+</body>
+</html>
